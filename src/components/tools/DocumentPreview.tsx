@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Paper,
   Typography,
@@ -8,11 +8,16 @@ import {
   LinearProgress,
   Snackbar,
   Alert,
+  TextField,
+  ToggleButton,
+  ToggleButtonGroup,
 } from '@mui/material';
 import {
   ContentCopy as CopyIcon,
   Download as DownloadIcon,
   Description as DocumentIcon,
+  Edit as EditIcon,
+  Visibility as PreviewIcon,
 } from '@mui/icons-material';
 import ReactMarkdown from 'react-markdown';
 
@@ -27,14 +32,24 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
   isLoading,
   title,
 }) => {
+  const [editableContent, setEditableContent] = useState(content);
+  const [viewMode, setViewMode] = useState<'edit' | 'preview'>('edit');
   const [snackbar, setSnackbar] = useState<{
     open: boolean;
     message: string;
   }>({ open: false, message: '' });
 
+  // Sync when new content is generated
+  useEffect(() => {
+    if (content) {
+      setEditableContent(content);
+      setViewMode('edit');
+    }
+  }, [content]);
+
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(content);
+      await navigator.clipboard.writeText(editableContent);
       setSnackbar({ open: true, message: 'Copied to clipboard!' });
     } catch (error) {
       setSnackbar({ open: true, message: 'Failed to copy' });
@@ -42,7 +57,7 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
   };
 
   const handleDownload = () => {
-    const blob = new Blob([content], { type: 'text/markdown' });
+    const blob = new Blob([editableContent], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -53,6 +68,17 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
     URL.revokeObjectURL(url);
     setSnackbar({ open: true, message: 'Document downloaded!' });
   };
+
+  const handleViewModeChange = (
+    _event: React.MouseEvent<HTMLElement>,
+    newMode: 'edit' | 'preview' | null
+  ) => {
+    if (newMode !== null) {
+      setViewMode(newMode);
+    }
+  };
+
+  const hasContent = editableContent || content;
 
   return (
     <Paper
@@ -77,16 +103,42 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
           borderColor: 'divider',
         }}
       >
-        <Typography variant="subtitle1" fontWeight={600}>
-          Document Preview
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Typography variant="subtitle1" fontWeight={600}>
+            Document Preview
+          </Typography>
+          {hasContent && !isLoading && (
+            <ToggleButtonGroup
+              value={viewMode}
+              exclusive
+              onChange={handleViewModeChange}
+              size="small"
+              sx={{
+                '& .MuiToggleButton-root': {
+                  py: 0.5,
+                  px: 1.5,
+                  fontSize: '0.75rem',
+                },
+              }}
+            >
+              <ToggleButton value="edit" aria-label="edit mode">
+                <EditIcon sx={{ fontSize: 16, mr: 0.5 }} />
+                Edit
+              </ToggleButton>
+              <ToggleButton value="preview" aria-label="preview mode">
+                <PreviewIcon sx={{ fontSize: 16, mr: 0.5 }} />
+                Preview
+              </ToggleButton>
+            </ToggleButtonGroup>
+          )}
+        </Box>
         <Box sx={{ display: 'flex', gap: 1 }}>
           <Tooltip title="Copy to clipboard">
             <span>
               <IconButton
                 size="small"
                 onClick={handleCopy}
-                disabled={!content || isLoading}
+                disabled={!hasContent || isLoading}
               >
                 <CopyIcon fontSize="small" />
               </IconButton>
@@ -97,7 +149,7 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
               <IconButton
                 size="small"
                 onClick={handleDownload}
-                disabled={!content || isLoading}
+                disabled={!hasContent || isLoading}
               >
                 <DownloadIcon fontSize="small" />
               </IconButton>
@@ -118,56 +170,81 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
           bgcolor: 'grey.50',
         }}
       >
-        {content ? (
-          <Paper
-            elevation={0}
-            sx={{
-              p: 4,
-              bgcolor: 'background.paper',
-              minHeight: '100%',
-              '& h1, & h2, & h3, & h4, & h5, & h6': {
-                mt: 2,
-                mb: 1,
-              },
-              '& p': {
-                mb: 1.5,
-                lineHeight: 1.7,
-              },
-              '& ul, & ol': {
-                pl: 3,
-                mb: 1.5,
-              },
-              '& li': {
-                mb: 0.5,
-              },
-              '& strong': {
-                fontWeight: 600,
-              },
-              '& hr': {
-                my: 3,
-                border: 'none',
-                borderTop: '1px solid',
-                borderColor: 'divider',
-              },
-              '& table': {
-                width: '100%',
-                borderCollapse: 'collapse',
-                my: 2,
-              },
-              '& th, & td': {
-                border: '1px solid',
-                borderColor: 'divider',
-                p: 1,
-                textAlign: 'left',
-              },
-              '& th': {
-                bgcolor: 'grey.100',
-                fontWeight: 600,
-              },
-            }}
-          >
-            <ReactMarkdown>{content}</ReactMarkdown>
-          </Paper>
+        {hasContent ? (
+          viewMode === 'edit' ? (
+            <TextField
+              multiline
+              fullWidth
+              value={editableContent}
+              onChange={(e) => setEditableContent(e.target.value)}
+              variant="outlined"
+              sx={{
+                height: '100%',
+                '& .MuiOutlinedInput-root': {
+                  height: '100%',
+                  alignItems: 'flex-start',
+                  bgcolor: 'background.paper',
+                  fontFamily: 'monospace',
+                  fontSize: '0.875rem',
+                  lineHeight: 1.7,
+                },
+                '& .MuiOutlinedInput-input': {
+                  height: '100% !important',
+                  overflow: 'auto !important',
+                },
+              }}
+            />
+          ) : (
+            <Paper
+              elevation={0}
+              sx={{
+                p: 4,
+                bgcolor: 'background.paper',
+                minHeight: '100%',
+                '& h1, & h2, & h3, & h4, & h5, & h6': {
+                  mt: 2,
+                  mb: 1,
+                },
+                '& p': {
+                  mb: 1.5,
+                  lineHeight: 1.7,
+                },
+                '& ul, & ol': {
+                  pl: 3,
+                  mb: 1.5,
+                },
+                '& li': {
+                  mb: 0.5,
+                },
+                '& strong': {
+                  fontWeight: 600,
+                },
+                '& hr': {
+                  my: 3,
+                  border: 'none',
+                  borderTop: '1px solid',
+                  borderColor: 'divider',
+                },
+                '& table': {
+                  width: '100%',
+                  borderCollapse: 'collapse',
+                  my: 2,
+                },
+                '& th, & td': {
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  p: 1,
+                  textAlign: 'left',
+                },
+                '& th': {
+                  bgcolor: 'grey.100',
+                  fontWeight: 600,
+                },
+              }}
+            >
+              <ReactMarkdown>{editableContent}</ReactMarkdown>
+            </Paper>
+          )
         ) : (
           <Box
             sx={{
