@@ -1,155 +1,105 @@
 
 
-# Enhance Document Preview to Match Professional Document Format
+# Add AI Credits Usage Table to Settings Page
 
 ## Overview
-Transform the document preview panel to display generated documents like genuine, professional HR documents with proper letterhead styling, company branding, and formatted footer.
+Add a new section to the Settings page that displays a table tracking all AI credits used for document generation. This will include mock usage data showing which documents were generated, when, and how many credits were consumed.
 
 ---
 
 ## Visual Concept
 
 ```text
-+--------------------------------------------------+
-|  [COMPANY LOGO]                 Release Date:    |
-|  Acme Technologies             DD/MM/YYYY        |
-+--------------------------------------------------+
-|                                                   |
-|                 DOCUMENT TITLE                    |
-|                                                   |
-|  Date: ...                                        |
-|  To: ...                                          |
-|                                                   |
-|  [Document Body with proper formatting]           |
-|  - Bold headings                                  |
-|  - Italic emphasis                                |
-|  - Bulleted lists                                 |
-|  - Tables                                         |
-|                                                   |
-|  Signatory section...                             |
-|                                                   |
-+--------------------------------------------------+
-|         123 Business Park, Tech City             |
-|         State - 560001 | www.acmetech.com        |
-|            hr@acmetech.com | +91 80 1234 5678    |
-+--------------------------------------------------+
++----------------------------------------------------------+
+|  AI Credits Usage                                        |
++----------------------------------------------------------+
+|  Credits Used: 45 / 100    [Progress Bar: 45%]          |
+|  Billing Cycle: Jan 1 - Jan 31, 2024                     |
++----------------------------------------------------------+
+|  Document         | Type       | Date       | Credits    |
+|----------------------------------------------------------|
+|  Offer Letter ... | Letter     | 05/02/2026 | 2 credits  |
+|  NDA - Vendor ... | Contract   | 04/02/2026 | 3 credits  |
+|  Leave Policy ... | Policy     | 03/02/2026 | 4 credits  |
+|  ...              |            |            |            |
++----------------------------------------------------------+
 ```
 
 ---
 
 ## Implementation Details
 
-### 1. Add Sample Company Logo
-Create a sample company logo image in the public folder for use in the preview mode.
+### 1. Create Mock AI Credits Usage Data
+Create a new data file with mock usage history to simulate AI credit consumption.
 
-**File**: `public/sample-logo.svg`
-- Professional-looking placeholder logo
-- SVG format for crisp rendering at any size
-- Teal/green color scheme matching the app theme
+**File**: `src/data/mockAICredits.ts`
 
-### 2. Enhance DocumentPreview Component
-Update the preview mode (not edit mode) to wrap content with letterhead and footer.
+Data structure:
+```typescript
+interface AIUsageRecord {
+  id: string;
+  documentName: string;
+  documentType: string;
+  category: 'Letters' | 'Policies' | 'Contracts' | 'Employer Branding';
+  generatedAt: string; // ISO date string
+  creditsUsed: number;
+}
 
-**Key Changes to `src/components/tools/DocumentPreview.tsx`:**
+interface AICreditsStats {
+  totalCredits: number;
+  usedCredits: number;
+  billingCycleStart: string;
+  billingCycleEnd: string;
+}
+```
 
-**Header/Letterhead Section:**
-- Company logo (left-aligned, ~60px height)
-- Company name next to logo
-- Release Date in DD/MM/YYYY format (right-aligned)
-- Subtle divider line below
+Sample mock data:
+- 8-10 usage records across different document types
+- Different credit costs per document type (Letters: 2, Policies: 4, Contracts: 3, Branding: 2)
+- Total credits: 100, Used: 45
 
-**Body Section:**
-- Enhanced markdown styling for professional appearance
-- Proper typography hierarchy (h1, h2, h3 styling)
-- **Bold** text for emphasis
-- *Italic* for secondary emphasis
-- Table styling with borders
-- List styling with proper indentation
+### 2. Update Settings Page
+Add a new Paper section with the AI Credits Usage table.
 
-**Footer Section:**
-- Centered company address
-- Contact details (website, email, phone)
-- Subtle top border separator
+**File**: `src/pages/ToolsSettings.tsx`
 
-### 3. Update Company Context
-Add a `logoUrl` field to the company context to store the logo reference.
-
-**File**: `src/data/companyContext.ts`
-- Add `logoUrl` property defaulting to sample logo path
-
-### 4. Format Date as DD/MM/YYYY
-Create a utility or inline formatter to display dates in the DD/MM/YYYY format that matches Indian business document conventions.
+**Components to add:**
+- Summary section with progress bar showing credits used
+- Billing cycle date range
+- MUI Table with columns: Document, Type, Date, Credits
+- Category chips for visual distinction
 
 ---
 
 ## Technical Implementation
 
-### Files to Modify
+### Files to Create/Modify
 
-| File | Changes |
-|------|---------|
-| `public/sample-logo.svg` | Create new sample company logo |
-| `src/data/companyContext.ts` | Add `logoUrl` field |
-| `src/components/tools/DocumentPreview.tsx` | Add letterhead header and footer wrapper in preview mode |
+| File | Action | Changes |
+|------|--------|---------|
+| `src/data/mockAICredits.ts` | Create | Mock usage data and stats |
+| `src/pages/ToolsSettings.tsx` | Modify | Add AI Credits Usage section with table |
 
-### Preview Mode Structure (Pseudocode)
+### Table Columns
 
-```tsx
-// In preview mode, wrap ReactMarkdown with document structure
-<Box className="document-wrapper">
-  {/* Letterhead */}
-  <Box className="letterhead">
-    <Box className="logo-section">
-      <img src={logoUrl} alt="Company Logo" />
-      <Typography>{companyName}</Typography>
-    </Box>
-    <Box className="date-section">
-      <Typography>Release Date:</Typography>
-      <Typography>{formatDate(new Date())}</Typography>
-    </Box>
-  </Box>
-  
-  <Divider />
-  
-  {/* Document Body */}
-  <Box className="document-body">
-    <ReactMarkdown>{editableContent}</ReactMarkdown>
-  </Box>
-  
-  {/* Footer */}
-  <Box className="document-footer">
-    <Typography>{companyAddress}</Typography>
-    <Typography>{website} | {email} | {phone}</Typography>
-  </Box>
-</Box>
-```
+| Column | Description |
+|--------|-------------|
+| Document | Name of the generated document |
+| Type | Category chip (Letters, Policies, etc.) |
+| Date | Generation date in DD/MM/YYYY format |
+| Credits | Number of credits consumed |
 
-### Styling Specifications
+### UI Components Used
+- MUI `Paper` for section container
+- MUI `LinearProgress` for credits usage bar
+- MUI `Table`, `TableHead`, `TableBody`, `TableRow`, `TableCell` for the usage table
+- MUI `Chip` for category badges with color coding
+- MUI `Typography` for labels and values
 
-**Letterhead:**
-- Background: white
-- Logo: max-height 60px
-- Company name: 16px, semibold, primary color
-- Release date: 12px, right-aligned, gray
-
-**Body (ReactMarkdown):**
-- Font: System sans-serif, 14px base
-- Headings: Bold, varying sizes (h1: 20px, h2: 16px, h3: 14px)
-- Paragraphs: 1.7 line-height
-- Lists: Proper indentation with bullets/numbers
-- Tables: Full-width, bordered cells
-
-**Footer:**
-- Border-top: 1px solid divider
-- Text: Centered, 11px, gray
-- Padding: 16px top
-
----
-
-## Notes
-
-- The letterhead and footer appear **only in Preview mode**, not in Edit mode (raw markdown)
-- Company data pulled from `defaultCompanyContext` for now (can be made dynamic later)
-- Sample logo is a placeholder; in production, this would come from Company Setup upload
-- Date format follows Indian standard (DD/MM/YYYY)
+### Styling Notes
+- Place section between "General Settings" and "Default Signatory" sections
+- Use the same category colors from `tools.ts` for type chips
+- Date formatted as DD/MM/YYYY (consistent with document preview)
+- Credits column right-aligned
+- Subtle row hover effect
 
