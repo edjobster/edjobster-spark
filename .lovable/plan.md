@@ -1,125 +1,75 @@
 
 
-# Modern Horizontal Header Navigation Redesign
+# Make Document Preview Editable
 
-## Current Issues
-- Left sidebar creates a permanent margin (260px or 72px) causing extra horizontal space
-- Basic vertical navigation style looks dated
-- Layout feels cramped on smaller screens
+## Overview
+Convert the Document Preview section from read-only (ReactMarkdown rendering) to an editable mode, allowing users to modify the generated document content directly before copying or downloading.
 
 ---
 
-## Proposed Design: Modern Top Navigation
+## Current Implementation
+- Uses `ReactMarkdown` to render the generated markdown content
+- Content is passed as a prop and displayed as read-only formatted text
+- Copy and Download actions use the original `content` prop
 
-### Visual Concept
-A clean, modern horizontal header similar to **Linear, Notion, or Stripe** with:
+## Proposed Changes
 
-```text
-+------------------------------------------------------------------+
-|  [E] Edjobster   | Resources & Tools | Vault | Settings | Company |
-|                                                                    |
-|                  [🔍 Search tools...]        [Silver] [👤 PS ▼]   |
-+------------------------------------------------------------------+
+### 1. Add Local Editable State
+- Create internal state `editableContent` that initializes from the `content` prop
+- Sync when new content is generated (using `useEffect` on `content` changes)
+- Copy/Download will use `editableContent` instead of original `content`
+
+### 2. Replace ReactMarkdown with Editable TextField
+- Replace the `ReactMarkdown` component with MUI `TextField` in multiline mode
+- Full-height textarea that fills the preview area
+- Clean, document-like styling with monospace font for markdown editing
+
+### 3. Add View Mode Toggle (Optional Enhancement)
+- Toggle button in header to switch between "Edit" and "Preview" modes
+- Edit mode: Shows raw markdown in textarea
+- Preview mode: Shows formatted markdown (current behavior)
+- Default to Edit mode when content is generated
+
+### 4. Update Copy/Download to Use Edited Content
+- Both actions will use the local `editableContent` state
+- Users get their edited version, not the original generated content
+
+---
+
+## Technical Implementation
+
+### State Changes
+```typescript
+const [editableContent, setEditableContent] = useState(content);
+const [viewMode, setViewMode] = useState<'edit' | 'preview'>('edit');
+
+// Sync when new content is generated
+useEffect(() => {
+  if (content) {
+    setEditableContent(content);
+    setViewMode('edit'); // Switch to edit mode on new generation
+  }
+}, [content]);
 ```
 
-### Header Structure (Single-Row Design)
-**Left Section:**
-- Logo with brand name "Edjobster"
-- Navigation tabs with active indicator (pill-shaped highlight)
-
-**Center/Flexible:**
-- Search bar (expandable on focus)
-
-**Right Section:**
-- Plan badge (Silver)
-- User avatar with dropdown menu
+### UI Changes
+- Add Edit/Preview toggle buttons in the header
+- In Edit mode: Full-height `TextField` with multiline
+- In Preview mode: Keep existing `ReactMarkdown` display
+- Both modes use `editableContent` as the source
 
 ---
 
-## Technical Changes
-
-### 1. Remove Sidebar Component
-- Delete the `Sidebar.tsx` component import and usage
-- Remove all sidebar-related state (open/toggle)
-- Eliminate margin-left from main content area
-
-### 2. Redesign TopNav as Header
-Convert to a full-width horizontal navigation:
-
-**Layout:**
-- Fixed position at top
-- Full width (no sidebar offset)
-- Height: 64px
-
-**Navigation Tabs:**
-- Horizontal tab buttons with icons
-- Active state: Filled background pill
-- Hover state: Subtle background highlight
-
-**Modern Styling:**
-- Subtle bottom border instead of heavy shadow
-- Clean white background
-- Teal accent color for active states
-- Smooth hover transitions
-
-### 3. Update AppLayout
-Remove sidebar, use simple vertical stack:
-
-```text
-+------------------------+
-|      TopNav (fixed)    |
-+------------------------+
-|                        |
-|    Main Content        |
-|    (full width)        |
-|                        |
-+------------------------+
-```
-
-- Remove flex row layout
-- Remove drawer width calculations
-- Add top padding to account for fixed header
-
----
-
-## Files to Modify
-
+## File to Modify
 | File | Changes |
 |------|---------|
-| `src/components/layout/TopNav.tsx` | Complete redesign with integrated navigation tabs, logo, search, and profile |
-| `src/components/layout/AppLayout.tsx` | Remove Sidebar, simplify to vertical layout with fixed header |
-| `src/components/layout/Sidebar.tsx` | Delete (no longer needed) |
+| `src/components/tools/DocumentPreview.tsx` | Add editable state, view mode toggle, and editable textarea |
 
 ---
 
-## UI Enhancements
-
-### Navigation Tab Styling
-- **Default:** Text + icon, muted color
-- **Hover:** Light teal background (rgba(0, 137, 123, 0.08))
-- **Active:** Filled teal background with white text
-
-### Search Bar
-- Rounded pill shape with subtle border
-- Expandable width on focus
-- Search icon inside
-
-### Profile Menu
-- Modern dropdown with user info header
-- Smooth hover states
-- Dividers for section separation
-
-### Responsive Behavior
-- On smaller screens: Navigation items collapse to icons only
-- Search bar becomes icon-only (expandable)
-
----
-
-## Technical Notes
-
-This redesign:
-- Eliminates the 260px/72px left margin issue
-- Provides a cleaner, more modern SaaS look
-- Improves horizontal space utilization
-- Follows patterns from Linear, Notion, and Stripe dashboards
+## UX Benefits
+- Users can make quick edits without going back to the form
+- One-way flow: Form → Generate → Edit → Download
+- Toggle allows switching between editing and previewing formatted output
+- Familiar markdown editing experience
 
