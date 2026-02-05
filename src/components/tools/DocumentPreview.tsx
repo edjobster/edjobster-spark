@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Paper,
   Typography,
@@ -12,6 +12,10 @@ import {
   ToggleButton,
   ToggleButtonGroup,
   Divider,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
 } from '@mui/material';
 import {
   ContentCopy as CopyIcon,
@@ -19,9 +23,16 @@ import {
   Description as DocumentIcon,
   Edit as EditIcon,
   Visibility as PreviewIcon,
+  PictureAsPdf as PdfIcon,
+  Article as DocxIcon,
+  Code as MarkdownIcon,
 } from '@mui/icons-material';
 import ReactMarkdown from 'react-markdown';
 import { defaultCompanyContext } from '@/data/companyContext';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
+import { saveAs } from 'file-saver';
 
 interface DocumentPreviewProps {
   content: string;
@@ -47,6 +58,9 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
     open: boolean;
     message: string;
   }>({ open: false, message: '' });
+  const [downloadAnchor, setDownloadAnchor] = useState<null | HTMLElement>(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const previewRef = useRef<HTMLDivElement>(null);
 
   const company = defaultCompanyContext;
 
@@ -67,7 +81,15 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
     }
   };
 
-  const handleDownload = () => {
+  const handleDownloadClick = (event: React.MouseEvent<HTMLElement>) => {
+    setDownloadAnchor(event.currentTarget);
+  };
+
+  const handleDownloadClose = () => {
+    setDownloadAnchor(null);
+  };
+
+  const handleDownloadMarkdown = () => {
     const blob = new Blob([editableContent], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -77,7 +99,248 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    setSnackbar({ open: true, message: 'Document downloaded!' });
+    setSnackbar({ open: true, message: 'Markdown downloaded!' });
+    handleDownloadClose();
+  };
+
+  const handleDownloadPDF = async () => {
+    setIsExporting(true);
+    handleDownloadClose();
+
+    // Switch to preview mode temporarily for PDF generation
+    const previousMode = viewMode;
+    if (viewMode === 'edit') {
+      setViewMode('preview');
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+
+    try {
+      if (previewRef.current) {
+        const canvas = await html2canvas(previewRef.current, {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+        });
+
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF({
+          orientation: 'portrait',
+          unit: 'mm',
+          format: 'a4',
+        });
+
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = pdf.internal.pageSize.getHeight();
+        const imgWidth = canvas.width;
+        const imgHeight = canvas.height;
+        const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+        const imgX = (pdfWidth - imgWidth * ratio) / 2;
+        const imgY = 0;
+
+        pdf.addImage(imgData, 'PNG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
+        pdf.save(`${title.toLowerCase().replace(/\s+/g, '-')}.pdf`);
+        setSnackbar({ open: true, message: 'PDF downloaded!' });
+      }
+    } catch (error) {
+      setSnackbar({ open: true, message: 'Failed to generate PDF' });
+    } finally {
+      setIsExporting(false);
+      if (previousMode === 'edit') {
+        setViewMode('edit');
+      }
+    }
+  };
+
+  const parseMarkdownToDocx = (markdown: string) => {
+    const lines = markdown.split('\n');
+    const children: Paragraph[] = [];
+
+    // Add company header
+    children.push(
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: company.companyName,
+            bold: true,
+            size: 28,
+          }),
+        ],
+        alignment: AlignmentType.LEFT,
+        spacing: { after: 100 },
+      })
+    );
+
+    children.push(
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: `Release Date: ${formatDate(new Date())}`,
+            size: 20,
+            italics: true,
+          }),
+        ],
+        alignment: AlignmentType.RIGHT,
+        spacing: { after: 300 },
+      })
+    );
+
+    // Parse markdown content
+    lines.forEach((line) => {
+      if (line.startsWith('# ')) {
+        children.push(
+          new Paragraph({
+            text: line.replace('# ', ''),
+            heading: HeadingLevel.HEADING_1,
+            spacing: { before: 300, after: 150 },
+          })
+        );
+      } else if (line.startsWith('## ')) {
+        children.push(
+          new Paragraph({
+            text: line.replace('## ', ''),
+            heading: HeadingLevel.HEADING_2,
+            spacing: { before: 250, after: 100 },
+          })
+        );
+      } else if (line.startsWith('### ')) {
+        children.push(
+          new Paragraph({
+            text: line.replace('### ', ''),
+            heading: HeadingLevel.HEADING_3,
+            spacing: { before: 200, after: 100 },
+          })
+        );
+      } else if (line.startsWith('- ') || line.startsWith('* ')) {
+        children.push(
+          new Paragraph({
+            text: line.replace(/^[-*] /, ''),
+            bullet: { level: 0 },
+            spacing: { after: 50 },
+          })
+        );
+      } else if (line.match(/^\d+\. /)) {
+        children.push(
+          new Paragraph({
+            text: line.replace(/^\d+\. /, ''),
+            numbering: { reference: 'default-numbering', level: 0 },
+            spacing: { after: 50 },
+          })
+        );
+      } else if (line.trim() === '---') {
+        children.push(
+          new Paragraph({
+            children: [new TextRun({ text: '' })],
+            border: { bottom: { style: 'single' as const, size: 6, color: 'auto' } },
+            spacing: { before: 200, after: 200 },
+          })
+        );
+      } else if (line.trim()) {
+        // Handle bold and italic in text
+        const runs: TextRun[] = [];
+        let remaining = line;
+        const regex = /(\*\*[^*]+\*\*|\*[^*]+\*)/g;
+        let lastIndex = 0;
+        let match;
+
+        while ((match = regex.exec(remaining)) !== null) {
+          if (match.index > lastIndex) {
+            runs.push(new TextRun({ text: remaining.slice(lastIndex, match.index) }));
+          }
+          const text = match[0];
+          if (text.startsWith('**') && text.endsWith('**')) {
+            runs.push(new TextRun({ text: text.slice(2, -2), bold: true }));
+          } else if (text.startsWith('*') && text.endsWith('*')) {
+            runs.push(new TextRun({ text: text.slice(1, -1), italics: true }));
+          }
+          lastIndex = match.index + match[0].length;
+        }
+        if (lastIndex < remaining.length) {
+          runs.push(new TextRun({ text: remaining.slice(lastIndex) }));
+        }
+
+        children.push(
+          new Paragraph({
+            children: runs.length > 0 ? runs : [new TextRun({ text: line })],
+            spacing: { after: 100 },
+          })
+        );
+      } else {
+        children.push(new Paragraph({ text: '', spacing: { after: 100 } }));
+      }
+    });
+
+    // Add footer
+    children.push(
+      new Paragraph({
+        children: [new TextRun({ text: '' })],
+        spacing: { before: 400 },
+      })
+    );
+    children.push(
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: company.companyAddress,
+            size: 18,
+            color: '666666',
+          }),
+        ],
+        alignment: AlignmentType.CENTER,
+      })
+    );
+    children.push(
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: `${company.companyWebsite} | ${company.companyEmail} | ${company.companyPhone}`,
+            size: 18,
+            color: '666666',
+          }),
+        ],
+        alignment: AlignmentType.CENTER,
+      })
+    );
+
+    return children;
+  };
+
+  const handleDownloadDocx = async () => {
+    setIsExporting(true);
+    handleDownloadClose();
+
+    try {
+      const doc = new Document({
+        numbering: {
+          config: [
+            {
+              reference: 'default-numbering',
+              levels: [
+                {
+                  level: 0,
+                  format: 'decimal' as const,
+                  text: '%1.',
+                  alignment: AlignmentType.START,
+                },
+              ],
+            },
+          ],
+        },
+        sections: [
+          {
+            children: parseMarkdownToDocx(editableContent),
+          },
+        ],
+      });
+
+      const blob = await Packer.toBlob(doc);
+      saveAs(blob, `${title.toLowerCase().replace(/\s+/g, '-')}.docx`);
+      setSnackbar({ open: true, message: 'DOCX downloaded!' });
+    } catch (error) {
+      console.error('DOCX generation error:', error);
+      setSnackbar({ open: true, message: 'Failed to generate DOCX' });
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const handleViewModeChange = (
@@ -159,18 +422,44 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
             <span>
               <IconButton
                 size="small"
-                onClick={handleDownload}
-                disabled={!hasContent || isLoading}
+                onClick={handleDownloadClick}
+                disabled={!hasContent || isLoading || isExporting}
               >
                 <DownloadIcon fontSize="small" />
               </IconButton>
             </span>
           </Tooltip>
+          <Menu
+            anchorEl={downloadAnchor}
+            open={Boolean(downloadAnchor)}
+            onClose={handleDownloadClose}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+          >
+            <MenuItem onClick={handleDownloadPDF}>
+              <ListItemIcon>
+                <PdfIcon fontSize="small" color="error" />
+              </ListItemIcon>
+              <ListItemText>Download as PDF</ListItemText>
+            </MenuItem>
+            <MenuItem onClick={handleDownloadDocx}>
+              <ListItemIcon>
+                <DocxIcon fontSize="small" color="primary" />
+              </ListItemIcon>
+              <ListItemText>Download as DOCX</ListItemText>
+            </MenuItem>
+            <MenuItem onClick={handleDownloadMarkdown}>
+              <ListItemIcon>
+                <MarkdownIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText>Download as Markdown</ListItemText>
+            </MenuItem>
+          </Menu>
         </Box>
       </Box>
 
       {/* Loading indicator */}
-      {isLoading && <LinearProgress />}
+      {(isLoading || isExporting) && <LinearProgress />}
 
       {/* Content */}
       <Box
@@ -207,6 +496,7 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
             />
           ) : (
             <Paper
+              ref={previewRef}
               elevation={0}
               sx={{
                 bgcolor: 'background.paper',
