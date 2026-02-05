@@ -1,75 +1,155 @@
 
 
-# Make Document Preview Editable
+# Enhance Document Preview to Match Professional Document Format
 
 ## Overview
-Convert the Document Preview section from read-only (ReactMarkdown rendering) to an editable mode, allowing users to modify the generated document content directly before copying or downloading.
+Transform the document preview panel to display generated documents like genuine, professional HR documents with proper letterhead styling, company branding, and formatted footer.
 
 ---
 
-## Current Implementation
-- Uses `ReactMarkdown` to render the generated markdown content
-- Content is passed as a prop and displayed as read-only formatted text
-- Copy and Download actions use the original `content` prop
+## Visual Concept
 
-## Proposed Changes
+```text
++--------------------------------------------------+
+|  [COMPANY LOGO]                 Release Date:    |
+|  Acme Technologies             DD/MM/YYYY        |
++--------------------------------------------------+
+|                                                   |
+|                 DOCUMENT TITLE                    |
+|                                                   |
+|  Date: ...                                        |
+|  To: ...                                          |
+|                                                   |
+|  [Document Body with proper formatting]           |
+|  - Bold headings                                  |
+|  - Italic emphasis                                |
+|  - Bulleted lists                                 |
+|  - Tables                                         |
+|                                                   |
+|  Signatory section...                             |
+|                                                   |
++--------------------------------------------------+
+|         123 Business Park, Tech City             |
+|         State - 560001 | www.acmetech.com        |
+|            hr@acmetech.com | +91 80 1234 5678    |
++--------------------------------------------------+
+```
 
-### 1. Add Local Editable State
-- Create internal state `editableContent` that initializes from the `content` prop
-- Sync when new content is generated (using `useEffect` on `content` changes)
-- Copy/Download will use `editableContent` instead of original `content`
+---
 
-### 2. Replace ReactMarkdown with Editable TextField
-- Replace the `ReactMarkdown` component with MUI `TextField` in multiline mode
-- Full-height textarea that fills the preview area
-- Clean, document-like styling with monospace font for markdown editing
+## Implementation Details
 
-### 3. Add View Mode Toggle (Optional Enhancement)
-- Toggle button in header to switch between "Edit" and "Preview" modes
-- Edit mode: Shows raw markdown in textarea
-- Preview mode: Shows formatted markdown (current behavior)
-- Default to Edit mode when content is generated
+### 1. Add Sample Company Logo
+Create a sample company logo image in the public folder for use in the preview mode.
 
-### 4. Update Copy/Download to Use Edited Content
-- Both actions will use the local `editableContent` state
-- Users get their edited version, not the original generated content
+**File**: `public/sample-logo.svg`
+- Professional-looking placeholder logo
+- SVG format for crisp rendering at any size
+- Teal/green color scheme matching the app theme
+
+### 2. Enhance DocumentPreview Component
+Update the preview mode (not edit mode) to wrap content with letterhead and footer.
+
+**Key Changes to `src/components/tools/DocumentPreview.tsx`:**
+
+**Header/Letterhead Section:**
+- Company logo (left-aligned, ~60px height)
+- Company name next to logo
+- Release Date in DD/MM/YYYY format (right-aligned)
+- Subtle divider line below
+
+**Body Section:**
+- Enhanced markdown styling for professional appearance
+- Proper typography hierarchy (h1, h2, h3 styling)
+- **Bold** text for emphasis
+- *Italic* for secondary emphasis
+- Table styling with borders
+- List styling with proper indentation
+
+**Footer Section:**
+- Centered company address
+- Contact details (website, email, phone)
+- Subtle top border separator
+
+### 3. Update Company Context
+Add a `logoUrl` field to the company context to store the logo reference.
+
+**File**: `src/data/companyContext.ts`
+- Add `logoUrl` property defaulting to sample logo path
+
+### 4. Format Date as DD/MM/YYYY
+Create a utility or inline formatter to display dates in the DD/MM/YYYY format that matches Indian business document conventions.
 
 ---
 
 ## Technical Implementation
 
-### State Changes
-```typescript
-const [editableContent, setEditableContent] = useState(content);
-const [viewMode, setViewMode] = useState<'edit' | 'preview'>('edit');
+### Files to Modify
 
-// Sync when new content is generated
-useEffect(() => {
-  if (content) {
-    setEditableContent(content);
-    setViewMode('edit'); // Switch to edit mode on new generation
-  }
-}, [content]);
-```
-
-### UI Changes
-- Add Edit/Preview toggle buttons in the header
-- In Edit mode: Full-height `TextField` with multiline
-- In Preview mode: Keep existing `ReactMarkdown` display
-- Both modes use `editableContent` as the source
-
----
-
-## File to Modify
 | File | Changes |
 |------|---------|
-| `src/components/tools/DocumentPreview.tsx` | Add editable state, view mode toggle, and editable textarea |
+| `public/sample-logo.svg` | Create new sample company logo |
+| `src/data/companyContext.ts` | Add `logoUrl` field |
+| `src/components/tools/DocumentPreview.tsx` | Add letterhead header and footer wrapper in preview mode |
+
+### Preview Mode Structure (Pseudocode)
+
+```tsx
+// In preview mode, wrap ReactMarkdown with document structure
+<Box className="document-wrapper">
+  {/* Letterhead */}
+  <Box className="letterhead">
+    <Box className="logo-section">
+      <img src={logoUrl} alt="Company Logo" />
+      <Typography>{companyName}</Typography>
+    </Box>
+    <Box className="date-section">
+      <Typography>Release Date:</Typography>
+      <Typography>{formatDate(new Date())}</Typography>
+    </Box>
+  </Box>
+  
+  <Divider />
+  
+  {/* Document Body */}
+  <Box className="document-body">
+    <ReactMarkdown>{editableContent}</ReactMarkdown>
+  </Box>
+  
+  {/* Footer */}
+  <Box className="document-footer">
+    <Typography>{companyAddress}</Typography>
+    <Typography>{website} | {email} | {phone}</Typography>
+  </Box>
+</Box>
+```
+
+### Styling Specifications
+
+**Letterhead:**
+- Background: white
+- Logo: max-height 60px
+- Company name: 16px, semibold, primary color
+- Release date: 12px, right-aligned, gray
+
+**Body (ReactMarkdown):**
+- Font: System sans-serif, 14px base
+- Headings: Bold, varying sizes (h1: 20px, h2: 16px, h3: 14px)
+- Paragraphs: 1.7 line-height
+- Lists: Proper indentation with bullets/numbers
+- Tables: Full-width, bordered cells
+
+**Footer:**
+- Border-top: 1px solid divider
+- Text: Centered, 11px, gray
+- Padding: 16px top
 
 ---
 
-## UX Benefits
-- Users can make quick edits without going back to the form
-- One-way flow: Form → Generate → Edit → Download
-- Toggle allows switching between editing and previewing formatted output
-- Familiar markdown editing experience
+## Notes
+
+- The letterhead and footer appear **only in Preview mode**, not in Edit mode (raw markdown)
+- Company data pulled from `defaultCompanyContext` for now (can be made dynamic later)
+- Sample logo is a placeholder; in production, this would come from Company Setup upload
+- Date format follows Indian standard (DD/MM/YYYY)
 
