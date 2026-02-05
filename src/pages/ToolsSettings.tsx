@@ -85,9 +85,14 @@ const ToolsSettings: React.FC = () => {
 
       {/* AI Credits Usage Section */}
       <Paper sx={{ p: 3, mb: 3 }}>
-        <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
-          AI Credits Usage
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+            AI Credits Usage
+          </Typography>
+          <Button variant="outlined" size="small" color="primary">
+            Buy AI Credits
+          </Button>
+        </Box>
 
         {/* Usage Summary */}
         <Box sx={{ mb: 3 }}>
