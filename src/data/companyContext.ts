@@ -6,6 +6,7 @@ export interface CompanyContext {
   companyWebsite: string;
   industry: string;
   companySize: string;
+  logoUrl: string;
   signatory: {
     name: string;
     title: string;
@@ -22,6 +23,7 @@ export const defaultCompanyContext: CompanyContext = {
   companyWebsite: 'www.acmetech.com',
   industry: 'Information Technology',
   companySize: '50-200 employees',
+  logoUrl: '/sample-logo.svg',
   signatory: {
     name: 'Priya Sharma',
     title: 'Head of Human Resources',

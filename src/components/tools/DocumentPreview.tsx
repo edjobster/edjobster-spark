@@ -11,6 +11,7 @@ import {
   TextField,
   ToggleButton,
   ToggleButtonGroup,
+  Divider,
 } from '@mui/material';
 import {
   ContentCopy as CopyIcon,
@@ -20,12 +21,20 @@ import {
   Visibility as PreviewIcon,
 } from '@mui/icons-material';
 import ReactMarkdown from 'react-markdown';
+import { defaultCompanyContext } from '@/data/companyContext';
 
 interface DocumentPreviewProps {
   content: string;
   isLoading: boolean;
   title: string;
 }
+
+const formatDate = (date: Date): string => {
+  const day = date.getDate().toString().padStart(2, '0');
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
+};
 
 const DocumentPreview: React.FC<DocumentPreviewProps> = ({
   content,
@@ -38,6 +47,8 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
     open: boolean;
     message: string;
   }>({ open: false, message: '' });
+
+  const company = defaultCompanyContext;
 
   // Sync when new content is generated
   useEffect(() => {
@@ -198,51 +209,148 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
             <Paper
               elevation={0}
               sx={{
-                p: 4,
                 bgcolor: 'background.paper',
                 minHeight: '100%',
-                '& h1, & h2, & h3, & h4, & h5, & h6': {
-                  mt: 2,
-                  mb: 1,
-                },
-                '& p': {
-                  mb: 1.5,
-                  lineHeight: 1.7,
-                },
-                '& ul, & ol': {
-                  pl: 3,
-                  mb: 1.5,
-                },
-                '& li': {
-                  mb: 0.5,
-                },
-                '& strong': {
-                  fontWeight: 600,
-                },
-                '& hr': {
-                  my: 3,
-                  border: 'none',
-                  borderTop: '1px solid',
-                  borderColor: 'divider',
-                },
-                '& table': {
-                  width: '100%',
-                  borderCollapse: 'collapse',
-                  my: 2,
-                },
-                '& th, & td': {
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  p: 1,
-                  textAlign: 'left',
-                },
-                '& th': {
-                  bgcolor: 'grey.100',
-                  fontWeight: 600,
-                },
+                display: 'flex',
+                flexDirection: 'column',
               }}
             >
-              <ReactMarkdown>{editableContent}</ReactMarkdown>
+              {/* Letterhead */}
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-start',
+                  p: 3,
+                  pb: 2,
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <img
+                    src={company.logoUrl}
+                    alt={`${company.companyName} Logo`}
+                    style={{ height: 50, width: 'auto' }}
+                  />
+                  <Typography
+                    variant="h6"
+                    sx={{
+                      fontWeight: 600,
+                      color: 'primary.main',
+                      fontSize: '1rem',
+                    }}
+                  >
+                    {company.companyName}
+                  </Typography>
+                </Box>
+                <Box sx={{ textAlign: 'right' }}>
+                  <Typography
+                    variant="caption"
+                    sx={{ color: 'text.secondary', display: 'block' }}
+                  >
+                    Release Date:
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{ fontWeight: 500, color: 'text.primary' }}
+                  >
+                    {formatDate(new Date())}
+                  </Typography>
+                </Box>
+              </Box>
+
+              <Divider />
+
+              {/* Document Body */}
+              <Box
+                sx={{
+                  flexGrow: 1,
+                  p: 4,
+                  '& h1, & h2, & h3, & h4, & h5, & h6': {
+                    mt: 2,
+                    mb: 1,
+                    fontWeight: 600,
+                  },
+                  '& h1': { fontSize: '1.25rem' },
+                  '& h2': { fontSize: '1.1rem' },
+                  '& h3': { fontSize: '1rem' },
+                  '& p': {
+                    mb: 1.5,
+                    lineHeight: 1.7,
+                    fontSize: '0.875rem',
+                  },
+                  '& ul, & ol': {
+                    pl: 3,
+                    mb: 1.5,
+                  },
+                  '& li': {
+                    mb: 0.5,
+                    fontSize: '0.875rem',
+                  },
+                  '& strong': {
+                    fontWeight: 600,
+                  },
+                  '& em': {
+                    fontStyle: 'italic',
+                  },
+                  '& hr': {
+                    my: 3,
+                    border: 'none',
+                    borderTop: '1px solid',
+                    borderColor: 'divider',
+                  },
+                  '& table': {
+                    width: '100%',
+                    borderCollapse: 'collapse',
+                    my: 2,
+                    fontSize: '0.875rem',
+                  },
+                  '& th, & td': {
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    p: 1,
+                    textAlign: 'left',
+                  },
+                  '& th': {
+                    bgcolor: 'grey.100',
+                    fontWeight: 600,
+                  },
+                }}
+              >
+                <ReactMarkdown>{editableContent}</ReactMarkdown>
+              </Box>
+
+              <Divider />
+
+              {/* Footer */}
+              <Box
+                sx={{
+                  p: 2,
+                  textAlign: 'center',
+                  bgcolor: 'grey.50',
+                }}
+              >
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: 'text.secondary',
+                    display: 'block',
+                    fontSize: '0.7rem',
+                  }}
+                >
+                  {company.companyAddress}
+                </Typography>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: 'text.secondary',
+                    display: 'block',
+                    fontSize: '0.7rem',
+                    mt: 0.5,
+                  }}
+                >
+                  {company.companyWebsite} | {company.companyEmail} | {company.companyPhone}
+                </Typography>
+              </Box>
             </Paper>
           )
         ) : (
