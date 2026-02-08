@@ -3,9 +3,9 @@ import { createTheme } from '@mui/material/styles';
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#00897B',
-      light: '#4DB6AC',
-      dark: '#00695C',
+      main: '#1976D2',
+      light: '#42A5F5',
+      dark: '#1565C0',
       contrastText: '#FFFFFF',
     },
     secondary: {
@@ -192,9 +192,9 @@ const theme = createTheme({
           borderRadius: 8,
           marginBottom: 4,
           '&.Mui-selected': {
-            backgroundColor: 'rgba(0, 137, 123, 0.08)',
+            backgroundColor: 'rgba(25, 118, 210, 0.08)',
             '&:hover': {
-              backgroundColor: 'rgba(0, 137, 123, 0.12)',
+              backgroundColor: 'rgba(25, 118, 210, 0.12)',
             },
           },
         },
