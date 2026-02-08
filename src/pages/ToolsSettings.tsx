@@ -18,8 +18,9 @@ import {
   Chip,
 } from '@mui/material';
 import { defaultCompanyContext } from '@/data/companyContext';
-import { mockAIUsageRecords, mockAICreditsStats } from '@/data/mockAICredits';
 import { getCategoryColor, ToolCategory } from '@/data/tools';
+import { useCredits } from '@/hooks/useCredits';
+import BuyCreditsDialog from '@/components/credits/BuyCreditsDialog';
 
 const formatDate = (dateString: string): string => {
   const date = new Date(dateString);
@@ -37,6 +38,8 @@ const formatBillingCycle = (start: string, end: string): string => {
 };
 
 const ToolsSettings: React.FC = () => {
+  const { credits, usageRecords, remaining } = useCredits();
+  const [buyCreditsOpen, setBuyCreditsOpen] = useState(false);
   const [settings, setSettings] = useState({
     useCompanyContext: true,
     autoSaveDrafts: true,
@@ -56,7 +59,7 @@ const ToolsSettings: React.FC = () => {
     setSettings((prev) => ({ ...prev, [name]: e.target.value }));
   };
 
-  const usagePercentage = (mockAICreditsStats.usedCredits / mockAICreditsStats.totalCredits) * 100;
+  const usagePercentage = (credits.usedCredits / credits.totalCredits) * 100;
 
   return (
     <Box>
@@ -89,7 +92,7 @@ const ToolsSettings: React.FC = () => {
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
             AI Credits Usage
           </Typography>
-          <Button variant="outlined" size="small" color="primary">
+          <Button variant="outlined" size="small" color="primary" onClick={() => setBuyCreditsOpen(true)}>
             Buy AI Credits
           </Button>
         </Box>
@@ -98,7 +101,7 @@ const ToolsSettings: React.FC = () => {
         <Box sx={{ mb: 3 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
             <Typography variant="body2" sx={{ fontWeight: 500 }}>
-              Credits Used: {mockAICreditsStats.usedCredits} / {mockAICreditsStats.totalCredits}
+              Credits Used: {credits.usedCredits} / {credits.totalCredits}
             </Typography>
             <Typography variant="caption" color="text.secondary">
               {usagePercentage.toFixed(0)}%
@@ -118,7 +121,7 @@ const ToolsSettings: React.FC = () => {
             }}
           />
           <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-            Billing Cycle: {formatBillingCycle(mockAICreditsStats.billingCycleStart, mockAICreditsStats.billingCycleEnd)}
+            Billing Cycle: {formatBillingCycle(credits.billingCycleStart, credits.billingCycleEnd)}
           </Typography>
         </Box>
 
@@ -136,7 +139,7 @@ const ToolsSettings: React.FC = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {mockAIUsageRecords.map((record) => (
+              {usageRecords.map((record) => (
                 <TableRow
                   key={record.id}
                   sx={{
@@ -233,6 +236,12 @@ const ToolsSettings: React.FC = () => {
           Save Settings
         </Button>
       </Paper>
+
+      {/* Buy Credits Dialog */}
+      <BuyCreditsDialog
+        open={buyCreditsOpen}
+        onClose={() => setBuyCreditsOpen(false)}
+      />
     </Box>
   );
 };

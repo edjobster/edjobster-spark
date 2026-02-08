@@ -110,3 +110,27 @@ export const mockAICreditsStats: AICreditsStats = {
 export const calculateUsedCredits = (): number => {
   return mockAIUsageRecords.reduce((sum, record) => sum + record.creditsUsed, 0);
 };
+
+// Credit Plans for purchase
+export interface CreditPlan {
+  id: string;
+  name: string;
+  credits: number;
+  price: number;
+  pricePerCredit: number;
+  popular?: boolean;
+}
+
+export const creditPlans: CreditPlan[] = [
+  { id: 'starter', name: 'Starter', credits: 25, price: 4.99, pricePerCredit: 0.20 },
+  { id: 'standard', name: 'Standard', credits: 50, price: 7.99, pricePerCredit: 0.16, popular: true },
+  { id: 'pro', name: 'Pro Pack', credits: 100, price: 12.99, pricePerCredit: 0.13 },
+  { id: 'enterprise', name: 'Enterprise', credits: 250, price: 24.99, pricePerCredit: 0.10 },
+];
+
+// Get document credit cost based on type
+export const getDocumentCreditCost = (documentType: string): number => {
+  if (['NDA', 'Freelancer Contract'].includes(documentType)) return 3;
+  if (['Leave Policy', 'WFH Policy'].includes(documentType)) return 4;
+  return 2; // Default for letters and branding
+};

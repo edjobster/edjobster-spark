@@ -39,6 +39,7 @@ interface DocumentPreviewProps {
   content: string;
   isLoading: boolean;
   title: string;
+  showWatermark?: boolean;
 }
 
 const formatDate = (date: Date): string => {
@@ -52,6 +53,7 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
   content,
   isLoading,
   title,
+  showWatermark = true,
 }) => {
   const [editableContent, setEditableContent] = useState(content);
   const [viewMode, setViewMode] = useState<'edit' | 'preview'>('edit');
@@ -513,8 +515,44 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
                 minHeight: '100%',
                 display: 'flex',
                 flexDirection: 'column',
+                position: 'relative',
+                overflow: 'hidden',
               }}
             >
+              {/* Watermark Overlay */}
+              {showWatermark && (
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    inset: 0,
+                    overflow: 'hidden',
+                    pointerEvents: 'none',
+                    zIndex: 0,
+                  }}
+                >
+                  {Array.from({ length: 10 }).map((_, i) => (
+                    <Typography
+                      key={i}
+                      sx={{
+                        position: 'absolute',
+                        top: `${i * 100}px`,
+                        left: '-50%',
+                        right: '-50%',
+                        textAlign: 'center',
+                        fontSize: '48px',
+                        fontWeight: 700,
+                        color: 'rgba(0, 0, 0, 0.06)',
+                        transform: 'rotate(-35deg)',
+                        whiteSpace: 'nowrap',
+                        userSelect: 'none',
+                        letterSpacing: '0.1em',
+                      }}
+                    >
+                      Edjobster &nbsp;&nbsp;&nbsp; Edjobster &nbsp;&nbsp;&nbsp; Edjobster &nbsp;&nbsp;&nbsp; Edjobster
+                    </Typography>
+                  ))}
+                </Box>
+              )}
               {/* Letterhead */}
               <Box
                 sx={{
