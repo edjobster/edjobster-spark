@@ -3,7 +3,6 @@ import { useNavigate, useLocation } from "react-router-dom";
 import {
   AppBar,
   Toolbar,
-  InputBase,
   Box,
   Chip,
   Avatar,
@@ -15,7 +14,6 @@ import {
   Button,
 } from "@mui/material";
 import {
-  Search as SearchIcon,
   Person as PersonIcon,
   Settings as SettingsIcon,
   Logout as LogoutIcon,
@@ -23,52 +21,14 @@ import {
   Folder as FolderIcon,
   Business as BusinessIcon,
   Tune as TuneIcon,
+  CreditCard as CreditCardIcon,
+  Lightbulb as LightbulbIcon,
 } from "@mui/icons-material";
 import { styled, alpha } from "@mui/material/styles";
-
-const Search = styled("div")(({ theme }) => ({
-  position: "relative",
-  borderRadius: 24,
-  backgroundColor: alpha(theme.palette.common.black, 0.04),
-  border: `1px solid ${alpha(theme.palette.common.black, 0.08)}`,
-  "&:hover": {
-    backgroundColor: alpha(theme.palette.common.black, 0.06),
-  },
-  "&:focus-within": {
-    backgroundColor: "white",
-    border: `1px solid ${theme.palette.primary.main}`,
-    boxShadow: `0 0 0 3px ${alpha(theme.palette.primary.main, 0.1)}`,
-  },
-  marginLeft: theme.spacing(2),
-  marginRight: theme.spacing(2),
-  width: 280,
-  transition: "all 0.2s ease",
-  [theme.breakpoints.down("md")]: {
-    width: 200,
-  },
-}));
-
-const SearchIconWrapper = styled("div")(({ theme }) => ({
-  padding: theme.spacing(0, 2),
-  height: "100%",
-  position: "absolute",
-  pointerEvents: "none",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  color: theme.palette.text.secondary,
-}));
-
-const StyledInputBase = styled(InputBase)(({ theme }) => ({
-  color: "inherit",
-  width: "100%",
-  "& .MuiInputBase-input": {
-    padding: theme.spacing(1, 1, 1, 0),
-    paddingLeft: `calc(1em + ${theme.spacing(4)})`,
-    fontSize: "0.875rem",
-    width: "100%",
-  },
-}));
+import SearchDropdown from "./SearchDropdown";
+import QuickCreateMenu from "./QuickCreateMenu";
+import RequestToolDialog from "./RequestToolDialog";
+import { mockAICreditsStats } from "@/data/mockAICredits";
 
 const NavButton = styled(Button, {
   shouldForwardProp: (prop) => prop !== "active",
@@ -126,10 +86,21 @@ const menuItems = [
   },
 ];
 
+const getCreditsColor = (remaining: number, total: number) => {
+  const percentage = (remaining / total) * 100;
+  if (percentage <= 10) return '#EF4444';
+  if (percentage <= 30) return '#F59E0B';
+  return '#10B981';
+};
+
 const TopNav: React.FC = () => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [requestDialogOpen, setRequestDialogOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+
+  const creditsRemaining = mockAICreditsStats.totalCredits - mockAICreditsStats.usedCredits;
+  const creditsColor = getCreditsColor(creditsRemaining, mockAICreditsStats.totalCredits);
 
   const handleProfileClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -216,26 +187,47 @@ const TopNav: React.FC = () => {
           </Box>
         </Box>
 
-        {/* Right Section: Search + Badge + Profile */}
+        {/* Right Section: Search + Credits + Quick Create + Request Tool + Profile */}
         <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-          <Search sx={{ display: { xs: "none", sm: "block" } }}>
-            <SearchIconWrapper>
-              <SearchIcon sx={{ fontSize: 20 }} />
-            </SearchIconWrapper>
-            <StyledInputBase placeholder="Search tools & documents…" inputProps={{ "aria-label": "search" }} />
-          </Search>
+          <SearchDropdown />
 
           <Chip
-            label="Silver"
+            icon={<CreditCardIcon sx={{ fontSize: 16 }} />}
+            label={`${creditsRemaining} Credits`}
             size="small"
+            onClick={() => navigate('/settings')}
             sx={{
-              bgcolor: "grey.100",
-              color: "grey.700",
+              bgcolor: alpha(creditsColor, 0.1),
+              color: creditsColor,
               fontWeight: 600,
               fontSize: "0.75rem",
               borderRadius: 2,
+              cursor: 'pointer',
               display: { xs: "none", md: "flex" },
+              '&:hover': {
+                bgcolor: alpha(creditsColor, 0.2),
+              },
             }}
+          />
+
+          <QuickCreateMenu />
+
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<LightbulbIcon />}
+            onClick={() => setRequestDialogOpen(true)}
+            sx={{
+              display: { xs: "none", md: "flex" },
+              textTransform: 'none',
+              borderRadius: 2,
+            }}
+          >
+            Request Tool
+          </Button>
+          <RequestToolDialog
+            open={requestDialogOpen}
+            onClose={() => setRequestDialogOpen(false)}
           />
 
           <IconButton onClick={handleProfileClick} sx={{ p: 0 }}>
