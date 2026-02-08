@@ -33,6 +33,7 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
 import { saveAs } from 'file-saver';
+import EditorToolbar from './EditorToolbar';
 
 interface DocumentPreviewProps {
   content: string;
@@ -61,6 +62,7 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
   const [downloadAnchor, setDownloadAnchor] = useState<null | HTMLElement>(null);
   const [isExporting, setIsExporting] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const company = defaultCompanyContext;
 
@@ -472,28 +474,36 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
       >
         {hasContent ? (
           viewMode === 'edit' ? (
-            <TextField
-              multiline
-              fullWidth
-              value={editableContent}
-              onChange={(e) => setEditableContent(e.target.value)}
-              variant="outlined"
-              sx={{
-                height: '100%',
-                '& .MuiOutlinedInput-root': {
-                  height: '100%',
-                  alignItems: 'flex-start',
-                  bgcolor: 'background.paper',
-                  fontFamily: 'monospace',
-                  fontSize: '0.875rem',
-                  lineHeight: 1.7,
-                },
-                '& .MuiOutlinedInput-input': {
-                  height: '100% !important',
-                  overflow: 'auto !important',
-                },
-              }}
-            />
+            <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+              <EditorToolbar
+                textareaRef={textareaRef}
+                content={editableContent}
+                onChange={setEditableContent}
+              />
+              <TextField
+                inputRef={textareaRef}
+                multiline
+                fullWidth
+                value={editableContent}
+                onChange={(e) => setEditableContent(e.target.value)}
+                variant="outlined"
+                sx={{
+                  flexGrow: 1,
+                  '& .MuiOutlinedInput-root': {
+                    height: '100%',
+                    alignItems: 'flex-start',
+                    bgcolor: 'background.paper',
+                    fontFamily: 'monospace',
+                    fontSize: '0.875rem',
+                    lineHeight: 1.7,
+                  },
+                  '& .MuiOutlinedInput-input': {
+                    height: '100% !important',
+                    overflow: 'auto !important',
+                  },
+                }}
+              />
+            </Box>
           ) : (
             <Paper
               ref={previewRef}
