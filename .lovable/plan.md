@@ -1,187 +1,266 @@
 
 
-# Add View and Edit Options to Documents Vault
+# Add Rich Text Editor Toolbar to Document Preview
 
 ## Overview
-Enhance the Documents Vault three-dot menu by adding "View" and "Edit" options for saved documents. The "View" option opens a popup/dialog where users can see the document content, and optionally edit it before closing.
+Add a formatting toolbar to the "Edit" tab in the Document Preview component that allows users to apply text styling, alignment, and link formatting without requiring additional heavy dependencies.
 
 ---
 
 ## Current State
 
-The three-dot menu currently has:
-- Download
-- Share  
-- Delete
+The Edit mode currently shows a plain `TextField` with monospace font for editing markdown content. Users must manually type markdown syntax for formatting.
 
-**Issue**: The menu doesn't track which document was clicked (only stores the button anchor element).
+```text
++------------------------------------------+
+| Document Preview    [Edit] [Preview]     |
+|------------------------------------------|
+| +--------------------------------------+ |
+| | # Offer Letter                       | |
+| | Dear **John**,                       | |
+| | ...                                  | |
+| +--------------------------------------+ |
++------------------------------------------+
+```
 
 ---
 
-## Proposed Changes
+## Proposed Solution
 
-### 1. Update Menu Options
-Add two new menu items in this order:
+Add a toolbar above the text editor with formatting buttons. Since the content is markdown-based, the toolbar will insert/wrap markdown syntax around selected text or at cursor position.
 
-| Option | Icon | Action |
+```text
++------------------------------------------+
+| Document Preview    [Edit] [Preview]     |
+|------------------------------------------|
+| [B] [I] [U] [S] | [H1] [H2] [H3] | [Link]|
+| [Left] [Center] [Right] | [•] [1.]       |
+|------------------------------------------|
+| +--------------------------------------+ |
+| | # Offer Letter                       | |
+| | Dear **John**,                       | |
+| +--------------------------------------+ |
++------------------------------------------+
+```
+
+---
+
+## Toolbar Features
+
+### Text Styling Group
+
+| Button | Icon | Markdown Output | Description |
+|--------|------|-----------------|-------------|
+| Bold | FormatBold | `**text**` | Wraps text in double asterisks |
+| Italic | FormatItalic | `*text*` | Wraps text in single asterisks |
+| Underline | FormatUnderlined | `<u>text</u>` | HTML underline tag |
+| Strikethrough | StrikethroughS | `~~text~~` | Double tildes |
+
+### Heading Group
+
+| Button | Icon | Markdown Output |
+|--------|------|-----------------|
+| H1 | Title or text "H1" | `# ` prefix |
+| H2 | Text "H2" | `## ` prefix |
+| H3 | Text "H3" | `### ` prefix |
+
+### Alignment Group
+
+| Button | Icon | Action |
 |--------|------|--------|
-| View | Visibility | Opens view dialog |
-| Edit | Edit | Opens edit dialog |
-| Download | Download | Existing |
-| Share | Share | Existing |
-| Delete | Delete | Existing (destructive, stays last) |
+| Left | FormatAlignLeft | Default (removes alignment tags) |
+| Center | FormatAlignCenter | Wraps line with `<center>` |
+| Right | FormatAlignRight | Wraps line with `<div align="right">` |
 
-### 2. View Document Dialog
-A popup that displays the document content in read-only mode:
+### List Group
 
-```text
-+-----------------------------------------------+
-| [X]                                           |
-|  Document Title                               |
-|  Type: Offer Letter | Category: Letters       |
-|  Created: 2024-01-15 | Size: 24 KB           |
-|-----------------------------------------------|
-|                                               |
-|  [Document Content Preview]                   |
-|  (Mock markdown/text content)                 |
-|                                               |
-|-----------------------------------------------|
-|           [Edit]              [Close]         |
-+-----------------------------------------------+
-```
+| Button | Icon | Markdown Output |
+|--------|------|-----------------|
+| Bullet List | FormatListBulleted | `- ` prefix |
+| Numbered List | FormatListNumbered | `1. ` prefix |
 
-Features:
-- Shows document metadata (title, type, category, date, size)
-- Displays document content in a scrollable area
-- "Edit" button switches to edit mode
-- "Close" button closes the dialog
+### Link Button
 
-### 3. Edit Document Dialog
-When user clicks "Edit" (from menu or view dialog), opens editable mode:
-
-```text
-+-----------------------------------------------+
-| [X]                                           |
-|  Edit Document                                |
-|-----------------------------------------------|
-|  Title: [________________]                    |
-|                                               |
-|  Content:                                     |
-|  +---------------------------------------+    |
-|  | [Editable text area with content]     |    |
-|  |                                       |    |
-|  +---------------------------------------+    |
-|                                               |
-|-----------------------------------------------|
-|          [Cancel]         [Save Changes]      |
-+-----------------------------------------------+
-```
-
-Features:
-- Editable title field
-- Multi-line text area for content editing
-- Cancel discards changes
-- Save updates the document (local state for now)
+| Button | Icon | Action |
+|--------|------|--------|
+| Link | Link | Opens dialog to insert `[text](url)` |
 
 ---
 
 ## Technical Implementation
 
-### Files to Modify
+### Files to Modify/Create
 
-| File | Changes |
-|------|---------|
-| `src/data/mockDocuments.ts` | Add `content` field to Document interface and mock data |
-| `src/pages/DocumentsVault.tsx` | Add dialogs, update menu, add state management |
+| File | Action | Description |
+|------|--------|-------------|
+| `src/components/tools/EditorToolbar.tsx` | Create | New toolbar component |
+| `src/components/tools/DocumentPreview.tsx` | Modify | Integrate toolbar, use textarea ref for selection |
 
-### Updated Document Interface
+### EditorToolbar Component
 
 ```typescript
-export interface Document {
-  id: string;
-  title: string;
-  type: string;
-  category: string;
-  createdAt: string;
-  size: string;
-  content: string;  // NEW: Document content for view/edit
+interface EditorToolbarProps {
+  textareaRef: React.RefObject<HTMLTextAreaElement>;
+  content: string;
+  onChange: (newContent: string) => void;
 }
 ```
 
-### New State Variables
+### Toolbar Styling
+
+Uses MUI components for consistent styling:
+- `ToggleButtonGroup` for grouped buttons
+- `ToggleButton` for individual format buttons
+- `Tooltip` for button hints
+- `Divider` for visual separation
+- `Dialog` for link insertion
+
+### Text Manipulation Logic
 
 ```typescript
-const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
-const [viewDialogOpen, setViewDialogOpen] = useState(false);
-const [editDialogOpen, setEditDialogOpen] = useState(false);
-const [editedContent, setEditedContent] = useState('');
-const [editedTitle, setEditedTitle] = useState('');
-const [documents, setDocuments] = useState(mockDocuments); // Local state for editing
-```
+const wrapSelection = (prefix: string, suffix: string) => {
+  const textarea = textareaRef.current;
+  if (!textarea) return;
+  
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  const selectedText = content.substring(start, end);
+  const before = content.substring(0, start);
+  const after = content.substring(end);
+  
+  const newContent = before + prefix + selectedText + suffix + after;
+  onChange(newContent);
+  
+  // Restore cursor position after the wrapped text
+  setTimeout(() => {
+    textarea.focus();
+    textarea.setSelectionRange(
+      start + prefix.length,
+      end + prefix.length
+    );
+  }, 0);
+};
 
-### Menu Click Handler Update
-
-```typescript
-const handleMenuClick = (event: React.MouseEvent<HTMLElement>, doc: Document) => {
-  setAnchorEl(event.currentTarget);
-  setSelectedDocument(doc);
+const prefixLine = (prefix: string) => {
+  const textarea = textareaRef.current;
+  if (!textarea) return;
+  
+  const start = textarea.selectionStart;
+  const lineStart = content.lastIndexOf('\n', start - 1) + 1;
+  const before = content.substring(0, lineStart);
+  const after = content.substring(lineStart);
+  
+  onChange(before + prefix + after);
 };
 ```
 
-### Dialog Actions
+### Link Dialog
 
-| Action | Handler |
-|--------|---------|
-| View click | Opens view dialog with selected doc |
-| Edit click (menu) | Opens edit dialog directly |
-| Edit click (view dialog) | Closes view, opens edit dialog |
-| Save changes | Updates document in local state, closes dialog |
-| Cancel | Closes dialog without saving |
+Simple MUI Dialog with:
+- Text field for link text (pre-filled with selection)
+- Text field for URL
+- Cancel/Insert buttons
 
-### MUI Components Used
-- `Dialog` - For both view and edit popups
-- `DialogTitle` - With close button
-- `DialogContent` - Document display/form
-- `DialogActions` - Action buttons
-- `TextField` - For title and content editing
-- Icons: `Visibility`, `Edit`, `Close`, `Download`, `Share`, `Delete`
+Generates: `[link text](https://example.com)`
 
 ---
 
-## Mock Content Examples
+## DocumentPreview Changes
 
-Each document will have sample content matching its type:
+### Add textarea ref
 
-| Document Type | Sample Content |
-|---------------|----------------|
-| Offer Letter | "Dear [Candidate], We are pleased to offer you the position of..." |
-| Leave Policy | "1. Introduction\nThis policy outlines the leave entitlements..." |
-| NDA | "This Non-Disclosure Agreement is entered into between..." |
+```typescript
+const textareaRef = useRef<HTMLTextAreaElement>(null);
+```
+
+### Updated Edit Mode JSX
+
+```tsx
+{viewMode === 'edit' && (
+  <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <EditorToolbar
+      textareaRef={textareaRef}
+      content={editableContent}
+      onChange={setEditableContent}
+    />
+    <TextField
+      inputRef={textareaRef}
+      multiline
+      fullWidth
+      value={editableContent}
+      onChange={(e) => setEditableContent(e.target.value)}
+      // ... existing styles
+    />
+  </Box>
+)}
+```
+
+---
+
+## Visual Design
+
+### Toolbar Layout
+
+```text
++------------------------------------------------------------------------+
+| [B][I][U][S] | [H1][H2][H3] | [≡L][≡C][≡R] | [•][1.] | [🔗] |          |
++------------------------------------------------------------------------+
+|                                                                        |
+|  Document content editing area...                                      |
+|                                                                        |
++------------------------------------------------------------------------+
+```
+
+### Toolbar Styling
+
+- Background: `grey.100` or subtle contrast
+- Buttons: Small size, 32x32px
+- Dividers: Vertical separators between groups
+- Tooltips: Show on hover with shortcut hints
+- Active state: Highlight when cursor is in formatted text (optional enhancement)
+
+---
+
+## MUI Icons Used
+
+| Icon | Import |
+|------|--------|
+| FormatBold | `@mui/icons-material/FormatBold` |
+| FormatItalic | `@mui/icons-material/FormatItalic` |
+| FormatUnderlined | `@mui/icons-material/FormatUnderlined` |
+| StrikethroughS | `@mui/icons-material/StrikethroughS` |
+| FormatAlignLeft | `@mui/icons-material/FormatAlignLeft` |
+| FormatAlignCenter | `@mui/icons-material/FormatAlignCenter` |
+| FormatAlignRight | `@mui/icons-material/FormatAlignRight` |
+| FormatListBulleted | `@mui/icons-material/FormatListBulleted` |
+| FormatListNumbered | `@mui/icons-material/FormatListNumbered` |
+| Link | `@mui/icons-material/Link` |
+| Title | `@mui/icons-material/Title` |
 
 ---
 
 ## User Flow
 
-```text
-User clicks three-dot menu
-        |
-        v
-Menu shows: View, Edit, Download, Share, Delete
-        |
-        +-- View --> View Dialog opens
-        |               |
-        |               +-- Click Edit --> Edit Dialog
-        |               +-- Click Close --> Dialog closes
-        |
-        +-- Edit --> Edit Dialog opens directly
-                        |
-                        +-- Save --> Updates doc, closes
-                        +-- Cancel --> Discards changes, closes
-```
+1. User is in Edit mode with document content
+2. User selects text they want to format
+3. User clicks a toolbar button (e.g., Bold)
+4. Selected text is wrapped with markdown syntax (`**text**`)
+5. Content updates and selection is preserved
+6. User can continue editing or switch to Preview to see rendered result
 
 ---
 
-## Files to Modify
-- `src/data/mockDocuments.ts` - Add content field to interface and mock data
-- `src/pages/DocumentsVault.tsx` - Add View/Edit dialogs and update menu
+## Benefits
+
+- No additional dependencies needed
+- Works with existing markdown-based workflow
+- Consistent with MUI design language
+- Formatting visible immediately in Preview mode
+- Intuitive for non-technical users
+
+---
+
+## Files to Create/Modify
+- `src/components/tools/EditorToolbar.tsx` - New toolbar component
+- `src/components/tools/DocumentPreview.tsx` - Integrate toolbar above edit area
 
