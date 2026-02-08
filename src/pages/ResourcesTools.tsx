@@ -8,11 +8,28 @@ const ResourcesTools: React.FC = () => {
     <Box>
       {/* Page Header */}
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" component="h1" sx={{ fontWeight: 700, mb: 1 }}>
-          Resources & Tools Library
+        <Typography 
+          variant="h3" 
+          component="h1" 
+          sx={{ 
+            fontWeight: 800, 
+            mb: 1.5,
+            fontSize: { xs: '1.75rem', sm: '2rem', md: '2.5rem' },
+            color: 'text.primary',
+          }}
+        >
+          Build HR Documents in Minutes
         </Typography>
-        <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-          HR tools, templates, and frameworks for SMB founders
+        <Typography 
+          variant="body1" 
+          color="text.secondary" 
+          sx={{ 
+            mb: 3, 
+            fontSize: { xs: '1rem', md: '1.125rem' },
+            maxWidth: 600,
+          }}
+        >
+          AI-powered tools to create professional letters, policies, and contracts for your growing team
         </Typography>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Chip 

@@ -17,6 +17,11 @@ interface ToolCardProps {
   tool: Tool;
 }
 
+const getCtaText = (title: string): string => {
+  if (title.includes('Builder')) return 'Create';
+  return 'Generate';
+};
+
 const ToolCard: React.FC<ToolCardProps> = ({ tool }) => {
   const navigate = useNavigate();
 
@@ -95,7 +100,7 @@ const ToolCard: React.FC<ToolCardProps> = ({ tool }) => {
           onClick={handleOpen}
           sx={{ fontWeight: 600 }}
         >
-          Open
+          {getCtaText(tool.title)}
         </Button>
       </CardActions>
     </Card>
