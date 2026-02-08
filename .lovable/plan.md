@@ -1,266 +1,139 @@
 
 
-# Add Rich Text Editor Toolbar to Document Preview
+# Enhance Home Page Heading and Tool Card CTAs
 
 ## Overview
-Add a formatting toolbar to the "Edit" tab in the Document Preview component that allows users to apply text styling, alignment, and link formatting without requiring additional heavy dependencies.
+Make two impactful changes to the home page: update the heading to be more engaging and visually prominent, and change the tool card button text from "Open" to action-oriented CTAs.
 
 ---
 
-## Current State
+## Changes
 
-The Edit mode currently shows a plain `TextField` with monospace font for editing markdown content. Users must manually type markdown syntax for formatting.
+### 1. Update Page Heading
 
-```text
-+------------------------------------------+
-| Document Preview    [Edit] [Preview]     |
-|------------------------------------------|
-| +--------------------------------------+ |
-| | # Offer Letter                       | |
-| | Dear **John**,                       | |
-| | ...                                  | |
-| +--------------------------------------+ |
-+------------------------------------------+
-```
+**Current State:**
+- Heading: "Resources & Tools Library"
+- Subtitle: "HR tools, templates, and frameworks for SMB founders"
+- Uses `variant="h4"` which doesn't feel like a main hero heading
 
----
+**Proposed Update:**
 
-## Proposed Solution
+| Element | Current | New |
+|---------|---------|-----|
+| Heading | "Resources & Tools Library" | "Build HR Documents in Minutes" |
+| Subtitle | "HR tools, templates, and frameworks for SMB founders" | "AI-powered tools to create professional letters, policies, and contracts for your growing team" |
+| Style | `variant="h4"` | `variant="h3"` with larger font size and enhanced styling |
 
-Add a toolbar above the text editor with formatting buttons. Since the content is markdown-based, the toolbar will insert/wrap markdown syntax around selected text or at cursor position.
+**Alternative Heading Options:**
+- "Your AI HR Assistant" 
+- "Create Professional HR Documents Instantly"
+- "HR Made Simple for Growing Teams"
 
-```text
-+------------------------------------------+
-| Document Preview    [Edit] [Preview]     |
-|------------------------------------------|
-| [B] [I] [U] [S] | [H1] [H2] [H3] | [Link]|
-| [Left] [Center] [Right] | [•] [1.]       |
-|------------------------------------------|
-| +--------------------------------------+ |
-| | # Offer Letter                       | |
-| | Dear **John**,                       | |
-| +--------------------------------------+ |
-+------------------------------------------+
-```
+The heading will be styled with:
+- Larger typography (2rem on mobile, 2.5rem on desktop)
+- Slightly darker color for emphasis
+- Subtle gradient or accent color on key word (optional)
 
----
+### 2. Update Tool Card CTA Button
 
-## Toolbar Features
+**Current:** "Open" with arrow icon
 
-### Text Styling Group
+**Proposed:** Context-aware CTA based on tool type
 
-| Button | Icon | Markdown Output | Description |
-|--------|------|-----------------|-------------|
-| Bold | FormatBold | `**text**` | Wraps text in double asterisks |
-| Italic | FormatItalic | `*text*` | Wraps text in single asterisks |
-| Underline | FormatUnderlined | `<u>text</u>` | HTML underline tag |
-| Strikethrough | StrikethroughS | `~~text~~` | Double tildes |
+| Tool Type | CTA Text |
+|-----------|----------|
+| Generators (Letters, Policies, Contracts) | "Generate" |
+| Builders (EVP, NDA, Branding Post) | "Create" |
 
-### Heading Group
-
-| Button | Icon | Markdown Output |
-|--------|------|-----------------|
-| H1 | Title or text "H1" | `# ` prefix |
-| H2 | Text "H2" | `## ` prefix |
-| H3 | Text "H3" | `### ` prefix |
-
-### Alignment Group
-
-| Button | Icon | Action |
-|--------|------|--------|
-| Left | FormatAlignLeft | Default (removes alignment tags) |
-| Center | FormatAlignCenter | Wraps line with `<center>` |
-| Right | FormatAlignRight | Wraps line with `<div align="right">` |
-
-### List Group
-
-| Button | Icon | Markdown Output |
-|--------|------|-----------------|
-| Bullet List | FormatListBulleted | `- ` prefix |
-| Numbered List | FormatListNumbered | `1. ` prefix |
-
-### Link Button
-
-| Button | Icon | Action |
-|--------|------|--------|
-| Link | Link | Opens dialog to insert `[text](url)` |
-
----
-
-## Technical Implementation
-
-### Files to Modify/Create
-
-| File | Action | Description |
-|------|--------|-------------|
-| `src/components/tools/EditorToolbar.tsx` | Create | New toolbar component |
-| `src/components/tools/DocumentPreview.tsx` | Modify | Integrate toolbar, use textarea ref for selection |
-
-### EditorToolbar Component
-
+**Logic:**
 ```typescript
-interface EditorToolbarProps {
-  textareaRef: React.RefObject<HTMLTextAreaElement>;
-  content: string;
-  onChange: (newContent: string) => void;
-}
-```
-
-### Toolbar Styling
-
-Uses MUI components for consistent styling:
-- `ToggleButtonGroup` for grouped buttons
-- `ToggleButton` for individual format buttons
-- `Tooltip` for button hints
-- `Divider` for visual separation
-- `Dialog` for link insertion
-
-### Text Manipulation Logic
-
-```typescript
-const wrapSelection = (prefix: string, suffix: string) => {
-  const textarea = textareaRef.current;
-  if (!textarea) return;
-  
-  const start = textarea.selectionStart;
-  const end = textarea.selectionEnd;
-  const selectedText = content.substring(start, end);
-  const before = content.substring(0, start);
-  const after = content.substring(end);
-  
-  const newContent = before + prefix + selectedText + suffix + after;
-  onChange(newContent);
-  
-  // Restore cursor position after the wrapped text
-  setTimeout(() => {
-    textarea.focus();
-    textarea.setSelectionRange(
-      start + prefix.length,
-      end + prefix.length
-    );
-  }, 0);
-};
-
-const prefixLine = (prefix: string) => {
-  const textarea = textareaRef.current;
-  if (!textarea) return;
-  
-  const start = textarea.selectionStart;
-  const lineStart = content.lastIndexOf('\n', start - 1) + 1;
-  const before = content.substring(0, lineStart);
-  const after = content.substring(lineStart);
-  
-  onChange(before + prefix + after);
+const getCtaText = (title: string) => {
+  if (title.includes('Builder')) return 'Create';
+  return 'Generate';
 };
 ```
 
-### Link Dialog
-
-Simple MUI Dialog with:
-- Text field for link text (pre-filled with selection)
-- Text field for URL
-- Cancel/Insert buttons
-
-Generates: `[link text](https://example.com)`
+This makes the button more action-oriented and indicates that clicking will produce something, not just open a page.
 
 ---
 
-## DocumentPreview Changes
+## Files to Modify
 
-### Add textarea ref
+| File | Changes |
+|------|---------|
+| `src/pages/ResourcesTools.tsx` | Update heading text and typography styling |
+| `src/components/tools/ToolCard.tsx` | Change button text from "Open" to dynamic CTA |
 
-```typescript
-const textareaRef = useRef<HTMLTextAreaElement>(null);
+---
+
+## Visual Result
+
+**Before:**
+```text
+Resources & Tools Library
+HR tools, templates, and frameworks for SMB founders
+[Silver Offerings (13 tools)]
+
+[Card: Offer Letter Generator] [Open ->]
 ```
 
-### Updated Edit Mode JSX
+**After:**
+```text
+Build HR Documents in Minutes
+AI-powered tools to create professional letters, policies, and contracts for your growing team
+[Silver Offerings (13 tools)]
 
+[Card: Offer Letter Generator] [Generate ->]
+[Card: EVP Builder] [Create ->]
+```
+
+---
+
+## Technical Details
+
+### ResourcesTools.tsx Changes
 ```tsx
-{viewMode === 'edit' && (
-  <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-    <EditorToolbar
-      textareaRef={textareaRef}
-      content={editableContent}
-      onChange={setEditableContent}
-    />
-    <TextField
-      inputRef={textareaRef}
-      multiline
-      fullWidth
-      value={editableContent}
-      onChange={(e) => setEditableContent(e.target.value)}
-      // ... existing styles
-    />
-  </Box>
-)}
+<Typography 
+  variant="h3" 
+  component="h1" 
+  sx={{ 
+    fontWeight: 800, 
+    mb: 1.5,
+    fontSize: { xs: '1.75rem', sm: '2rem', md: '2.5rem' },
+    color: 'text.primary',
+  }}
+>
+  Build HR Documents in Minutes
+</Typography>
+<Typography 
+  variant="body1" 
+  color="text.secondary" 
+  sx={{ 
+    mb: 3, 
+    fontSize: { xs: '1rem', md: '1.125rem' },
+    maxWidth: 600,
+  }}
+>
+  AI-powered tools to create professional letters, policies, and contracts for your growing team
+</Typography>
 ```
 
----
+### ToolCard.tsx Changes
+```tsx
+const getCtaText = (title: string): string => {
+  if (title.includes('Builder')) return 'Create';
+  return 'Generate';
+};
 
-## Visual Design
-
-### Toolbar Layout
-
-```text
-+------------------------------------------------------------------------+
-| [B][I][U][S] | [H1][H2][H3] | [≡L][≡C][≡R] | [•][1.] | [🔗] |          |
-+------------------------------------------------------------------------+
-|                                                                        |
-|  Document content editing area...                                      |
-|                                                                        |
-+------------------------------------------------------------------------+
+// In the Button:
+<Button
+  variant="text"
+  color="primary"
+  endIcon={<ArrowForwardIcon />}
+  onClick={handleOpen}
+  sx={{ fontWeight: 600 }}
+>
+  {getCtaText(tool.title)}
+</Button>
 ```
-
-### Toolbar Styling
-
-- Background: `grey.100` or subtle contrast
-- Buttons: Small size, 32x32px
-- Dividers: Vertical separators between groups
-- Tooltips: Show on hover with shortcut hints
-- Active state: Highlight when cursor is in formatted text (optional enhancement)
-
----
-
-## MUI Icons Used
-
-| Icon | Import |
-|------|--------|
-| FormatBold | `@mui/icons-material/FormatBold` |
-| FormatItalic | `@mui/icons-material/FormatItalic` |
-| FormatUnderlined | `@mui/icons-material/FormatUnderlined` |
-| StrikethroughS | `@mui/icons-material/StrikethroughS` |
-| FormatAlignLeft | `@mui/icons-material/FormatAlignLeft` |
-| FormatAlignCenter | `@mui/icons-material/FormatAlignCenter` |
-| FormatAlignRight | `@mui/icons-material/FormatAlignRight` |
-| FormatListBulleted | `@mui/icons-material/FormatListBulleted` |
-| FormatListNumbered | `@mui/icons-material/FormatListNumbered` |
-| Link | `@mui/icons-material/Link` |
-| Title | `@mui/icons-material/Title` |
-
----
-
-## User Flow
-
-1. User is in Edit mode with document content
-2. User selects text they want to format
-3. User clicks a toolbar button (e.g., Bold)
-4. Selected text is wrapped with markdown syntax (`**text**`)
-5. Content updates and selection is preserved
-6. User can continue editing or switch to Preview to see rendered result
-
----
-
-## Benefits
-
-- No additional dependencies needed
-- Works with existing markdown-based workflow
-- Consistent with MUI design language
-- Formatting visible immediately in Preview mode
-- Intuitive for non-technical users
-
----
-
-## Files to Create/Modify
-- `src/components/tools/EditorToolbar.tsx` - New toolbar component
-- `src/components/tools/DocumentPreview.tsx` - Integrate toolbar above edit area
 
