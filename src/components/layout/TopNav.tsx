@@ -28,7 +28,8 @@ import { styled, alpha } from "@mui/material/styles";
 import SearchDropdown from "./SearchDropdown";
 import QuickCreateMenu from "./QuickCreateMenu";
 import RequestToolDialog from "./RequestToolDialog";
-import { mockAICreditsStats } from "@/data/mockAICredits";
+import BuyCreditsDialog from "@/components/credits/BuyCreditsDialog";
+import { useCredits } from "@/hooks/useCredits";
 
 const NavButton = styled(Button, {
   shouldForwardProp: (prop) => prop !== "active",
@@ -96,11 +97,12 @@ const getCreditsColor = (remaining: number, total: number) => {
 const TopNav: React.FC = () => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [requestDialogOpen, setRequestDialogOpen] = useState(false);
+  const [buyCreditsOpen, setBuyCreditsOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
-  const creditsRemaining = mockAICreditsStats.totalCredits - mockAICreditsStats.usedCredits;
-  const creditsColor = getCreditsColor(creditsRemaining, mockAICreditsStats.totalCredits);
+  const { remaining } = useCredits();
+  const creditsColor = getCreditsColor(remaining, 100);
 
   const handleProfileClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -193,9 +195,9 @@ const TopNav: React.FC = () => {
 
           <Chip
             icon={<CreditCardIcon sx={{ fontSize: 16 }} />}
-            label={`${creditsRemaining} Credits`}
+            label={`${remaining} Credits`}
             size="small"
-            onClick={() => navigate('/settings')}
+            onClick={() => setBuyCreditsOpen(true)}
             sx={{
               bgcolor: alpha(creditsColor, 0.1),
               color: creditsColor,
@@ -208,6 +210,10 @@ const TopNav: React.FC = () => {
                 bgcolor: alpha(creditsColor, 0.2),
               },
             }}
+          />
+          <BuyCreditsDialog
+            open={buyCreditsOpen}
+            onClose={() => setBuyCreditsOpen(false)}
           />
 
           <QuickCreateMenu />

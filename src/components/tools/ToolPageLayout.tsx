@@ -25,6 +25,11 @@ import {
   Save as SaveIcon,
 } from '@mui/icons-material';
 import DocumentPreview from './DocumentPreview';
+import LowCreditsWarning from '@/components/credits/LowCreditsWarning';
+import NoCreditsModal from '@/components/credits/NoCreditsModal';
+import { useCredits } from '@/hooks/useCredits';
+import { getDocumentCreditCost } from '@/data/mockAICredits';
+import { ToolCategory } from '@/data/tools';
 
 interface ToolPageLayoutProps {
   title: string;
@@ -34,6 +39,8 @@ interface ToolPageLayoutProps {
   formData: Record<string, any>;
   onGenerate: () => string;
   onClear: () => void;
+  documentType?: string;
+  category?: ToolCategory;
 }
 
 const ToolPageLayout: React.FC<ToolPageLayoutProps> = ({
@@ -44,19 +51,32 @@ const ToolPageLayout: React.FC<ToolPageLayoutProps> = ({
   formData,
   onGenerate,
   onClear,
+  documentType,
+  category = 'Letters',
 }) => {
   const navigate = useNavigate();
+  const { hasEnoughCredits, consumeCredits, isEmpty } = useCredits();
   const [useCompanyContext, setUseCompanyContext] = useState(true);
   const [generatedDocument, setGeneratedDocument] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [showNoCreditsModal, setShowNoCreditsModal] = useState(false);
   const [snackbar, setSnackbar] = useState<{
     open: boolean;
     message: string;
     severity: 'success' | 'error' | 'info';
   }>({ open: false, message: '', severity: 'success' });
 
+  const docType = documentType || title.replace(' Generator', '').replace(' Builder', '');
+  const creditCost = getDocumentCreditCost(docType);
+
   const handleGenerate = useCallback(async () => {
+    // Check if user has enough credits
+    if (!hasEnoughCredits(creditCost)) {
+      setShowNoCreditsModal(true);
+      return;
+    }
+
     setIsGenerating(true);
     
     // Simulate AI generation delay
@@ -66,9 +86,18 @@ const ToolPageLayout: React.FC<ToolPageLayoutProps> = ({
       const document = onGenerate();
       setGeneratedDocument(document);
       setLastSaved(new Date());
+      
+      // Consume credits and record usage
+      consumeCredits(creditCost, {
+        documentName: `${docType} - ${new Date().toLocaleDateString()}`,
+        documentType: docType,
+        category: category,
+        generatedAt: new Date().toISOString().split('T')[0],
+      });
+      
       setSnackbar({
         open: true,
-        message: 'Document generated successfully!',
+        message: `Document generated! (${creditCost} credits used)`,
         severity: 'success',
       });
     } catch (error) {
@@ -80,7 +109,7 @@ const ToolPageLayout: React.FC<ToolPageLayoutProps> = ({
     } finally {
       setIsGenerating(false);
     }
-  }, [onGenerate]);
+  }, [onGenerate, hasEnoughCredits, consumeCredits, creditCost, docType, category]);
 
   const handleClearDraft = () => {
     onClear();
@@ -103,6 +132,15 @@ const ToolPageLayout: React.FC<ToolPageLayoutProps> = ({
 
   return (
     <Box sx={{ pb: 4 }}>
+      {/* Low Credits Warning */}
+      <LowCreditsWarning />
+
+      {/* No Credits Modal */}
+      <NoCreditsModal
+        open={showNoCreditsModal}
+        onClose={() => setShowNoCreditsModal(false)}
+      />
+
       {/* Header */}
       <Box sx={{ mb: 3 }}>
         <Button
