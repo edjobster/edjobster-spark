@@ -1,203 +1,183 @@
 
 
-# Enhance Company Setup Page
+# Enhance Header Navigation with Advanced Features
 
 ## Overview
-Expand the Company Setup page with additional company customization options, document header/footer content settings, and a call-to-action to an ATS (Applicant Tracking System) app for hiring candidates.
+Upgrade the TopNav header with five new features: search suggestions dropdown, Edjobster blue brand color, AI credits balance counter, quick-create circular "+" button, and a "Request a Tool" button that opens a form dialog.
 
 ---
 
-## Current State Analysis
-
-The Company Setup page currently has:
-- Company Logo section (upload/remove)
-- Basic Company Information (name, industry, size, website, email, phone, address)
-
-Missing elements:
-- Signatory details (currently only in ToolsSettings)
-- Header/Footer customization for documents
-- Additional branding options
-- Integration with external hiring tools
-
----
-
-## Proposed Changes
-
-### 1. Additional Company Details Section
-Add more customization fields to capture comprehensive company information:
-
-| Field | Description |
-|-------|-------------|
-| Company Registration Number | CIN/Registration ID |
-| GST Number | Tax identification |
-| Tagline/Motto | Company slogan for branding |
-| Founded Year | Establishment year |
-| Legal Entity Type | Pvt. Ltd., LLP, etc. |
-
-### 2. Default Signatory Section
-Move signatory configuration from Tools Settings to Company Setup for centralized management:
-
-| Field | Description |
-|-------|-------------|
-| Signatory Name | Name of the authorized signatory |
-| Signatory Title | Designation/Role |
-| Signatory Email | Contact email |
-| Signatory Phone | Contact number |
-
-### 3. Document Header Settings Section
-Allow customization of what appears in document headers:
-
-| Setting | Description |
-|---------|-------------|
-| Show Company Logo | Toggle to display logo in header |
-| Show Company Name | Toggle to display company name |
-| Show Release Date | Toggle to show document date |
-| Header Tagline | Custom text below company name |
-| Header Background Color | Color picker for header background |
-
-### 4. Document Footer Settings Section
-Allow customization of footer content:
-
-| Setting | Description |
-|---------|-------------|
-| Show Address | Toggle for address line |
-| Show Contact Details | Toggle for website/email/phone |
-| Custom Footer Text | Additional text (legal disclaimers, etc.) |
-| Footer Background Color | Color picker for footer background |
-
-### 5. ATS Integration Call-to-Action
-A prominent banner/card encouraging users to hire candidates through an ATS app:
+## Visual Concept
 
 ```text
-+----------------------------------------------------------+
-|  [Icon]  Ready to Hire Your Next Star?                   |
-|                                                           |
-|  Use our ATS app to manage candidates and streamline     |
-|  your hiring process.                                     |
-|                                                           |
-|           [Go to Hiring Portal]  [Learn More]            |
-+----------------------------------------------------------+
++-------------------------------------------------------------------------------------------+
+| [E] Edjobster   [Resources & Tools] [Documents Vault] [Settings] [Company]               |
+|                                                                                           |
+|     [Search tools & documents...]  [73 Credits]  [+]  [Request Tool]  [PS]               |
+|           |                                                                               |
+|           v                                                                               |
+|     +------------------+                                                                  |
+|     | Suggested        |                                                                  |
+|     | - Offer Letter   |                                                                  |
+|     | - NDA Builder    |                                                                  |
+|     | Recent Documents |                                                                  |
+|     | - Leave Policy   |                                                                  |
+|     +------------------+                                                                  |
++-------------------------------------------------------------------------------------------+
 ```
+
+---
+
+## Feature Breakdown
+
+### 1. Search Bar with Suggestions Dropdown
+When the user focuses on the search bar or types, a dropdown appears showing:
+- **Suggested Tools**: Matching tools from the tools list
+- **Recent Documents**: Recently generated documents from the vault
+- **Categories**: Quick filter by category (Letters, Policies, etc.)
+
+| Behavior | Description |
+|----------|-------------|
+| On focus | Show popular/recent items |
+| On typing | Filter tools and documents by search term |
+| On select | Navigate to tool or document |
+| Keyboard | Arrow keys to navigate, Enter to select |
+
+### 2. Edjobster Blue Brand Color
+Update the theme and logo to use blue instead of teal:
+- Primary color change: `#00897B` (teal) to `#1976D2` (Edjobster blue)
+- Logo background updates accordingly
+- Active nav buttons use the new blue
+
+### 3. AI Credits Balance Counter
+Display remaining credits in the header:
+- Shows: "73 Credits" (calculated from mockAICreditsStats)
+- Chip/badge style with icon
+- Color-coded: green when healthy, yellow when < 30%, red when < 10%
+- Clicking navigates to Settings page
+
+### 4. Circular "+" Quick Create Button
+An ATS-style floating action button with dropdown menu:
+- Circular button with "+" icon
+- Dropdown shows frequently used document generators:
+  - Offer Letter
+  - Appointment Letter
+  - NDA
+  - Leave Policy
+  - Experience Letter
+- Each item navigates to the respective tool page
+
+### 5. Request a Tool Button
+A button that opens a dialog for submitting tool requests:
+- Button with icon in the header
+- Opens modal/dialog with form fields:
+  - Tool Name (required)
+  - Description (required)
+  - Category (select)
+  - Priority (optional)
+- Submit shows success toast
 
 ---
 
 ## Technical Implementation
 
-### Files to Modify
+### Files to Modify/Create
 
-| File | Changes |
-|------|---------|
-| `src/data/companyContext.ts` | Add new fields for additional details, header/footer settings |
-| `src/pages/CompanySetup.tsx` | Add new sections with forms and ATS CTA |
+| File | Action | Changes |
+|------|--------|---------|
+| `src/theme/muiTheme.ts` | Modify | Update primary color to Edjobster blue |
+| `src/components/layout/TopNav.tsx` | Modify | Add all new header features |
+| `src/components/layout/SearchDropdown.tsx` | Create | Search suggestions component |
+| `src/components/layout/QuickCreateMenu.tsx` | Create | "+" button with dropdown menu |
+| `src/components/layout/RequestToolDialog.tsx` | Create | Dialog form for requesting tools |
 
-### Updated CompanyContext Interface
+### Component Architecture
+
+```text
+TopNav
+  ├── Logo (updated to blue)
+  ├── NavButtons
+  ├── SearchDropdown (NEW)
+  │     ├── SearchInput
+  │     └── SuggestionsPanel
+  │           ├── ToolSuggestions
+  │           └── RecentDocuments
+  ├── CreditsChip (NEW)
+  ├── QuickCreateMenu (NEW)
+  │     └── Menu with tool shortcuts
+  ├── RequestToolButton (NEW)
+  │     └── Dialog with form
+  └── ProfileMenu
+```
+
+### Search Dropdown Implementation
 
 ```typescript
-export interface CompanyContext {
-  // Existing fields
-  companyName: string;
-  companyAddress: string;
-  companyEmail: string;
-  companyPhone: string;
-  companyWebsite: string;
-  industry: string;
-  companySize: string;
-  logoUrl: string;
-  signatory: {
-    name: string;
-    title: string;
-    email: string;
-    phone: string;
-  };
-  
-  // New fields
-  registrationNumber: string;
-  gstNumber: string;
-  tagline: string;
-  foundedYear: string;
-  legalEntityType: string;
-  
-  // Header settings
-  headerSettings: {
-    showLogo: boolean;
-    showCompanyName: boolean;
-    showReleaseDate: boolean;
-    headerTagline: string;
-    headerBgColor: string;
-  };
-  
-  // Footer settings
-  footerSettings: {
-    showAddress: boolean;
-    showContactDetails: boolean;
-    customFooterText: string;
-    footerBgColor: string;
-  };
+interface SearchSuggestion {
+  type: 'tool' | 'document' | 'category';
+  id: string;
+  title: string;
+  subtitle?: string;
+  route: string;
+  icon?: React.ReactNode;
 }
 ```
 
-### Page Layout Structure
+Features:
+- Controlled `Popover` anchored to search input
+- Opens on focus/typing
+- Closes on blur or selection
+- Filters tools and documents based on input
+- Shows keyboard navigation hints
 
-```text
-+----------------------------------------------------------+
-|  Company Setup                                            |
-|  Configure your company information for generated docs    |
-+----------------------------------------------------------+
+### Quick Create Menu Items
 
-[ATS Call-to-Action Banner - Prominent teal accent card]
+| Action | Route |
+|--------|-------|
+| Create Offer Letter | `/tools/offer-letter` |
+| Create Appointment Letter | `/tools/appointment-letter` |
+| Create NDA | `/tools/nda` |
+| Create Leave Policy | `/tools/leave-policy` |
+| Create Experience Letter | `/tools/experience-letter` |
 
-+----------------------------------------------------------+
-|  Company Logo                                             |
-|  [Avatar] [Upload] [Remove]                               |
-+----------------------------------------------------------+
+### Request Tool Form Fields
 
-+----------------------------------------------------------+
-|  Company Information                                      |
-|  [Name] [Industry] [Size] [Website]                      |
-|  [Email] [Phone] [Registration] [GST]                    |
-|  [Founded Year] [Legal Entity Type]                       |
-|  [Address - full width, multiline]                        |
-|  [Tagline - full width]                                   |
-+----------------------------------------------------------+
+| Field | Type | Validation |
+|-------|------|------------|
+| Tool Name | TextField | Required, min 3 chars |
+| Description | TextField (multiline) | Required, min 10 chars |
+| Category | Select | Letters, Policies, Contracts, Other |
+| Use Case | TextField (multiline) | Optional |
 
-+----------------------------------------------------------+
-|  Default Signatory                                        |
-|  [Name] [Title] [Email] [Phone]                          |
-+----------------------------------------------------------+
+### Credits Display Logic
 
-+----------------------------------------------------------+
-|  Document Header Settings                                 |
-|  [x] Show Company Logo  [x] Show Company Name            |
-|  [x] Show Release Date                                    |
-|  [Header Tagline text field]                              |
-|  [Header Background Color picker]                         |
-+----------------------------------------------------------+
-
-+----------------------------------------------------------+
-|  Document Footer Settings                                 |
-|  [x] Show Address  [x] Show Contact Details              |
-|  [Custom Footer Text - multiline]                         |
-|  [Footer Background Color picker]                         |
-+----------------------------------------------------------+
-
-                                   [Save Company Information]
+```typescript
+const getCreditsColor = (remaining: number, total: number) => {
+  const percentage = (remaining / total) * 100;
+  if (percentage <= 10) return '#EF4444'; // red
+  if (percentage <= 30) return '#F59E0B'; // yellow
+  return '#10B981'; // green
+};
 ```
-
-### UI Components Used
-- MUI `Paper` for section cards
-- MUI `TextField` for text inputs
-- MUI `Switch` with `FormControlLabel` for toggles
-- MUI `Button` for actions
-- MUI `Alert` or custom card for ATS CTA
-- MUI Icons (`PersonAdd`, `OpenInNew`, `Business`, etc.)
 
 ---
 
-## Visual Design Notes
+## UI Components Used
+- MUI `Popover` for search dropdown
+- MUI `Menu` and `MenuItem` for quick create
+- MUI `Dialog` for request tool form
+- MUI `TextField`, `Select` for form inputs
+- MUI `Chip` for credits display
+- MUI `IconButton` with `Fab` styling for "+" button
+- MUI Icons: `Add`, `Search`, `CreditCard`, `Lightbulb`
 
-- ATS CTA card should use primary teal color with white text to stand out
-- All sections maintain consistent spacing (mb: 3 between papers)
-- Form fields use size="small" for compact appearance
-- Grid layout: 2 columns on desktop, 1 column on mobile
-- Color pickers can be simple text fields with hex input (can enhance later)
+---
+
+## Styling Notes
+- Blue brand color: `#1976D2` (primary), `#1565C0` (dark), `#42A5F5` (light)
+- Search dropdown: white background, subtle shadow, max-height with scroll
+- Quick create button: circular, blue background, white "+" icon
+- Credits chip: compact, shows icon + number
+- Request tool button: outline style, positioned before profile avatar
+- All dropdowns/menus: solid white background, z-index 1300+
 
