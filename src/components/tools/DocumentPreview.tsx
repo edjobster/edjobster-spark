@@ -519,40 +519,6 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
                 overflow: 'hidden',
               }}
             >
-              {/* Watermark Overlay */}
-              {showWatermark && (
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    inset: 0,
-                    overflow: 'hidden',
-                    pointerEvents: 'none',
-                    zIndex: 0,
-                  }}
-                >
-                  {Array.from({ length: 10 }).map((_, i) => (
-                    <Typography
-                      key={i}
-                      sx={{
-                        position: 'absolute',
-                        top: `${i * 100}px`,
-                        left: '-50%',
-                        right: '-50%',
-                        textAlign: 'center',
-                        fontSize: '48px',
-                        fontWeight: 700,
-                        color: 'rgba(0, 0, 0, 0.06)',
-                        transform: 'rotate(-35deg)',
-                        whiteSpace: 'nowrap',
-                        userSelect: 'none',
-                        letterSpacing: '0.1em',
-                      }}
-                    >
-                      Edjobster &nbsp;&nbsp;&nbsp; Edjobster &nbsp;&nbsp;&nbsp; Edjobster &nbsp;&nbsp;&nbsp; Edjobster
-                    </Typography>
-                  ))}
-                </Box>
-              )}
               {/* Letterhead */}
               <Box
                 sx={{
@@ -688,6 +654,20 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
                 >
                   {company.companyWebsite} | {company.companyEmail} | {company.companyPhone}
                 </Typography>
+                {showWatermark && (
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: 'rgba(0, 0, 0, 0.35)',
+                      display: 'block',
+                      fontSize: '0.65rem',
+                      mt: 1,
+                      fontStyle: 'italic',
+                    }}
+                  >
+                    Created with Edjobster
+                  </Typography>
+                )}
               </Box>
             </Paper>
           )

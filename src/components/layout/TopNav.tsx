@@ -23,6 +23,7 @@ import {
   Tune as TuneIcon,
   CreditCard as CreditCardIcon,
   Lightbulb as LightbulbIcon,
+  OpenInNew as OpenInNewIcon,
 } from "@mui/icons-material";
 import { styled, alpha } from "@mui/material/styles";
 import SearchDropdown from "./SearchDropdown";
@@ -298,6 +299,14 @@ const TopNav: React.FC = () => {
             <MenuItem sx={{ py: 1.5 }}>
               <SettingsIcon sx={{ mr: 1.5, fontSize: 20, color: "text.secondary" }} />
               <Typography variant="body2">Settings</Typography>
+            </MenuItem>
+            <Divider />
+            <MenuItem
+              sx={{ py: 1.5 }}
+              onClick={() => window.open('https://www.edjobster.com', '_blank')}
+            >
+              <OpenInNewIcon sx={{ mr: 1.5, fontSize: 20, color: "text.secondary" }} />
+              <Typography variant="body2">Go to Edjobster ATS</Typography>
             </MenuItem>
             <Divider />
             <MenuItem sx={{ py: 1.5, color: "error.main" }}>
