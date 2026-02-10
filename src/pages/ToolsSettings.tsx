@@ -16,7 +16,10 @@ import {
   TableHead,
   TableRow,
   Chip,
+  Snackbar,
+  Alert,
 } from '@mui/material';
+import { Api as ApiIcon } from '@mui/icons-material';
 import { defaultCompanyContext } from '@/data/companyContext';
 import { getCategoryColor, ToolCategory } from '@/data/tools';
 import { useCredits } from '@/hooks/useCredits';
@@ -40,6 +43,7 @@ const formatBillingCycle = (start: string, end: string): string => {
 const ToolsSettings: React.FC = () => {
   const { credits, usageRecords, remaining } = useCredits();
   const [buyCreditsOpen, setBuyCreditsOpen] = useState(false);
+  const [apiRequestSent, setApiRequestSent] = useState(false);
   const [settings, setSettings] = useState({
     useCompanyContext: true,
     autoSaveDrafts: true,
@@ -236,6 +240,38 @@ const ToolsSettings: React.FC = () => {
           Save Settings
         </Button>
       </Paper>
+
+      {/* API Integration Section */}
+      <Paper sx={{ p: 3, mt: 3 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+          <ApiIcon sx={{ color: 'primary.main' }} />
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+            API Integration
+          </Typography>
+        </Box>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          Integrate Edjobster AI tools directly into your platform via API.
+        </Typography>
+        <Button
+          variant="outlined"
+          color="primary"
+          startIcon={<ApiIcon />}
+          onClick={() => setApiRequestSent(true)}
+        >
+          Request API
+        </Button>
+      </Paper>
+
+      <Snackbar
+        open={apiRequestSent}
+        autoHideDuration={4000}
+        onClose={() => setApiRequestSent(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={() => setApiRequestSent(false)} severity="success" sx={{ width: '100%' }}>
+          Your API access request has been submitted. We'll get back to you shortly!
+        </Alert>
+      </Snackbar>
 
       {/* Buy Credits Dialog */}
       <BuyCreditsDialog
