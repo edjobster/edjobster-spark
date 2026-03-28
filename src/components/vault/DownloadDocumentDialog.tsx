@@ -45,8 +45,12 @@ const DownloadDocumentDialog: React.FC<DownloadDocumentDialogProps> = ({ open, d
   const handleDownloadMarkdown = () => {
     const blob = new Blob([document.content], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement ? Object.assign(window.document.createElement('a'), { href: url, download: `${fileName}.md` }) : null;
-    if (a) { window.document.body.appendChild(a); a.click(); window.document.body.removeChild(a); }
+    const a = window.document.createElement('a');
+    a.href = url;
+    a.download = `${fileName}.md`;
+    window.document.body.appendChild(a);
+    a.click();
+    window.document.body.removeChild(a);
     URL.revokeObjectURL(url);
     setSnackbar({ open: true, message: 'Markdown downloaded!' });
     onClose();
