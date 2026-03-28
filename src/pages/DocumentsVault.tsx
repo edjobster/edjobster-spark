@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Box, 
   Typography, 
@@ -16,14 +17,11 @@ import {
   TableContainer, 
   TableHead, 
   TableRow,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
   Divider,
   ListItemIcon,
-  ListItemText
+  ListItemText,
+  Snackbar,
+  Alert,
 } from '@mui/material';
 import { 
   Search as SearchIcon, 
@@ -35,19 +33,41 @@ import {
   Download as DownloadIcon,
   Share as ShareIcon,
   Delete as DeleteIcon,
-  Close as CloseIcon
 } from '@mui/icons-material';
 import { mockDocuments as initialMockDocuments, mockVaultStats, mockCategories, Document } from '@/data/mockDocuments';
+import ViewDocumentDialog from '@/components/vault/ViewDocumentDialog';
+import DownloadDocumentDialog from '@/components/vault/DownloadDocumentDialog';
+import ShareDocumentDialog from '@/components/vault/ShareDocumentDialog';
+import DeleteDocumentDialog from '@/components/vault/DeleteDocumentDialog';
+
+const documentTypeToRoute: Record<string, string> = {
+  'Offer Letter': '/tools/offer-letter',
+  'Appointment Letter': '/tools/appointment-letter',
+  'Confirmation Letter': '/tools/confirmation-letter',
+  'Increment Letter': '/tools/increment-letter',
+  'Experience Letter': '/tools/experience-letter',
+  'Relieving Letter': '/tools/relieving-letter',
+  'Leave Policy': '/tools/leave-policy',
+  'WFH Policy': '/tools/wfh-policy',
+  'Freelancer Contract': '/tools/freelancer-contract',
+  'NDA': '/tools/nda',
+  'EVP': '/tools/evp-builder',
+  'Branding Post': '/tools/branding-post',
+};
 
 const DocumentsVault: React.FC = () => {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
-  const [viewDialogOpen, setViewDialogOpen] = useState(false);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [editedTitle, setEditedTitle] = useState('');
-  const [editedContent, setEditedContent] = useState('');
   const [documents, setDocuments] = useState<Document[]>(initialMockDocuments);
+
+  // Dialog states
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string }>({ open: false, message: '' });
 
   const filteredDocs = documents.filter(doc => doc.title.toLowerCase().includes(searchQuery.toLowerCase()));
 
@@ -62,49 +82,53 @@ const DocumentsVault: React.FC = () => {
 
   const handleViewClick = () => {
     handleMenuClose();
-    if (selectedDocument) {
-      setViewDialogOpen(true);
-    }
+    setViewDialogOpen(true);
   };
 
   const handleEditClick = () => {
     handleMenuClose();
     if (selectedDocument) {
-      setEditedTitle(selectedDocument.title);
-      setEditedContent(selectedDocument.content);
-      setEditDialogOpen(true);
+      const route = documentTypeToRoute[selectedDocument.type];
+      if (route) {
+        navigate(route, { state: { editDocument: selectedDocument } });
+      } else {
+        setSnackbar({ open: true, message: 'No editor available for this document type.' });
+      }
     }
   };
 
   const handleEditFromView = () => {
     setViewDialogOpen(false);
     if (selectedDocument) {
-      setEditedTitle(selectedDocument.title);
-      setEditedContent(selectedDocument.content);
-      setEditDialogOpen(true);
+      const route = documentTypeToRoute[selectedDocument.type];
+      if (route) {
+        navigate(route, { state: { editDocument: selectedDocument } });
+      }
     }
   };
 
-  const handleSaveChanges = () => {
+  const handleDownloadClick = () => {
+    handleMenuClose();
+    setDownloadDialogOpen(true);
+  };
+
+  const handleShareClick = () => {
+    handleMenuClose();
+    setShareDialogOpen(true);
+  };
+
+  const handleDeleteClick = () => {
+    handleMenuClose();
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
     if (selectedDocument) {
-      setDocuments(docs => 
-        docs.map(doc => 
-          doc.id === selectedDocument.id 
-            ? { ...doc, title: editedTitle, content: editedContent }
-            : doc
-        )
-      );
-      setSelectedDocument({ ...selectedDocument, title: editedTitle, content: editedContent });
+      setDocuments(docs => docs.filter(doc => doc.id !== selectedDocument.id));
+      setSnackbar({ open: true, message: `"${selectedDocument.title}" deleted successfully.` });
+      setSelectedDocument(null);
     }
-    setEditDialogOpen(false);
-  };
-
-  const handleCancelEdit = () => {
-    setEditDialogOpen(false);
-  };
-
-  const handleCloseView = () => {
-    setViewDialogOpen(false);
+    setDeleteDialogOpen(false);
   };
 
   return (
@@ -118,9 +142,9 @@ const DocumentsVault: React.FC = () => {
           <Box sx={{ mb: 2 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
               <Typography variant="body2">Documents</Typography>
-              <Typography variant="body2" color="text.secondary">{mockVaultStats.documentsUsed}/{mockVaultStats.documentsLimit}</Typography>
+              <Typography variant="body2" color="text.secondary">{documents.length}/{mockVaultStats.documentsLimit}</Typography>
             </Box>
-            <LinearProgress variant="determinate" value={(mockVaultStats.documentsUsed / mockVaultStats.documentsLimit) * 100} sx={{ height: 8, borderRadius: 1 }} />
+            <LinearProgress variant="determinate" value={(documents.length / mockVaultStats.documentsLimit) * 100} sx={{ height: 8, borderRadius: 1 }} />
           </Box>
           <Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
@@ -157,20 +181,28 @@ const DocumentsVault: React.FC = () => {
         <Table>
           <TableHead><TableRow><TableCell>Document</TableCell><TableCell>Type</TableCell><TableCell>Category</TableCell><TableCell>Created</TableCell><TableCell>Size</TableCell><TableCell></TableCell></TableRow></TableHead>
           <TableBody>
-            {filteredDocs.map((doc) => (
-              <TableRow key={doc.id} hover>
-                <TableCell><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><DescriptionIcon color="action" fontSize="small" />{doc.title}</Box></TableCell>
-                <TableCell>{doc.type}</TableCell>
-                <TableCell><Chip label={doc.category} size="small" /></TableCell>
-                <TableCell>{doc.createdAt}</TableCell>
-                <TableCell>{doc.size}</TableCell>
-                <TableCell>
-                  <IconButton size="small" onClick={(e) => handleMenuClick(e, doc)}>
-                    <MoreVertIcon />
-                  </IconButton>
+            {filteredDocs.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                  <Typography variant="body2" color="text.secondary">No documents found.</Typography>
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              filteredDocs.map((doc) => (
+                <TableRow key={doc.id} hover>
+                  <TableCell><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><DescriptionIcon color="action" fontSize="small" />{doc.title}</Box></TableCell>
+                  <TableCell>{doc.type}</TableCell>
+                  <TableCell><Chip label={doc.category} size="small" /></TableCell>
+                  <TableCell>{doc.createdAt}</TableCell>
+                  <TableCell>{doc.size}</TableCell>
+                  <TableCell>
+                    <IconButton size="small" onClick={(e) => handleMenuClick(e, doc)}>
+                      <MoreVertIcon />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </TableContainer>
@@ -185,120 +217,49 @@ const DocumentsVault: React.FC = () => {
           <ListItemIcon><EditIcon fontSize="small" /></ListItemIcon>
           <ListItemText>Edit</ListItemText>
         </MenuItem>
-        <MenuItem onClick={handleMenuClose}>
+        <MenuItem onClick={handleDownloadClick}>
           <ListItemIcon><DownloadIcon fontSize="small" /></ListItemIcon>
           <ListItemText>Download</ListItemText>
         </MenuItem>
-        <MenuItem onClick={handleMenuClose}>
+        <MenuItem onClick={handleShareClick}>
           <ListItemIcon><ShareIcon fontSize="small" /></ListItemIcon>
           <ListItemText>Share</ListItemText>
         </MenuItem>
         <Divider />
-        <MenuItem onClick={handleMenuClose} sx={{ color: 'error.main' }}>
+        <MenuItem onClick={handleDeleteClick} sx={{ color: 'error.main' }}>
           <ListItemIcon><DeleteIcon fontSize="small" color="error" /></ListItemIcon>
           <ListItemText>Delete</ListItemText>
         </MenuItem>
       </Menu>
 
-      {/* View Document Dialog */}
-      <Dialog 
-        open={viewDialogOpen} 
-        onClose={handleCloseView} 
-        maxWidth="md" 
-        fullWidth
-        PaperProps={{ sx: { maxHeight: '80vh' } }}
-      >
-        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', pb: 1 }}>
-          <Box>
-            <Typography variant="h6" component="div" fontWeight={600}>
-              {selectedDocument?.title}
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 2, mt: 1, flexWrap: 'wrap' }}>
-              <Typography variant="body2" color="text.secondary">
-                Type: {selectedDocument?.type}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Category: {selectedDocument?.category}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Created: {selectedDocument?.createdAt}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Size: {selectedDocument?.size}
-              </Typography>
-            </Box>
-          </Box>
-          <IconButton onClick={handleCloseView} size="small">
-            <CloseIcon />
-          </IconButton>
-        </DialogTitle>
-        <Divider />
-        <DialogContent sx={{ py: 3 }}>
-          <Paper 
-            variant="outlined" 
-            sx={{ 
-              p: 3, 
-              bgcolor: 'grey.50', 
-              minHeight: 300,
-              whiteSpace: 'pre-wrap',
-              fontFamily: 'inherit',
-              lineHeight: 1.7
-            }}
-          >
-            {selectedDocument?.content}
-          </Paper>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button variant="outlined" startIcon={<EditIcon />} onClick={handleEditFromView}>
-            Edit
-          </Button>
-          <Button variant="contained" onClick={handleCloseView}>
-            Close
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {/* Dialogs */}
+      <ViewDocumentDialog
+        open={viewDialogOpen}
+        document={selectedDocument}
+        onClose={() => setViewDialogOpen(false)}
+        onEdit={handleEditFromView}
+      />
+      <DownloadDocumentDialog
+        open={downloadDialogOpen}
+        document={selectedDocument}
+        onClose={() => setDownloadDialogOpen(false)}
+      />
+      <ShareDocumentDialog
+        open={shareDialogOpen}
+        document={selectedDocument}
+        onClose={() => setShareDialogOpen(false)}
+      />
+      <DeleteDocumentDialog
+        open={deleteDialogOpen}
+        document={selectedDocument}
+        onClose={() => setDeleteDialogOpen(false)}
+        onConfirm={handleDeleteConfirm}
+      />
 
-      {/* Edit Document Dialog */}
-      <Dialog 
-        open={editDialogOpen} 
-        onClose={handleCancelEdit} 
-        maxWidth="md" 
-        fullWidth
-        PaperProps={{ sx: { maxHeight: '80vh' } }}
-      >
-        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="h6" fontWeight={600}>Edit Document</Typography>
-          <IconButton onClick={handleCancelEdit} size="small">
-            <CloseIcon />
-          </IconButton>
-        </DialogTitle>
-        <Divider />
-        <DialogContent sx={{ py: 3 }}>
-          <TextField
-            fullWidth
-            label="Title"
-            value={editedTitle}
-            onChange={(e) => setEditedTitle(e.target.value)}
-            sx={{ mb: 3 }}
-          />
-          <TextField
-            fullWidth
-            label="Content"
-            multiline
-            rows={12}
-            value={editedContent}
-            onChange={(e) => setEditedContent(e.target.value)}
-          />
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button variant="outlined" onClick={handleCancelEdit}>
-            Cancel
-          </Button>
-          <Button variant="contained" onClick={handleSaveChanges}>
-            Save Changes
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {/* Snackbar */}
+      <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar({ ...snackbar, open: false })} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+        <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity="success" sx={{ width: '100%' }}>{snackbar.message}</Alert>
+      </Snackbar>
     </Box>
   );
 };
