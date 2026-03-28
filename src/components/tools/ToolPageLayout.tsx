@@ -55,6 +55,7 @@ const ToolPageLayout: React.FC<ToolPageLayoutProps> = ({
   category = 'Letters',
 }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { hasEnoughCredits, consumeCredits, isEmpty } = useCredits();
   const [useCompanyContext, setUseCompanyContext] = useState(true);
   const [generatedDocument, setGeneratedDocument] = useState<string>('');
@@ -66,6 +67,17 @@ const ToolPageLayout: React.FC<ToolPageLayoutProps> = ({
     message: string;
     severity: 'success' | 'error' | 'info';
   }>({ open: false, message: '', severity: 'success' });
+
+  // Load document content from vault navigation state
+  useEffect(() => {
+    const editDocument = (location.state as any)?.editDocument;
+    if (editDocument?.content) {
+      setGeneratedDocument(editDocument.content);
+      setLastSaved(new Date());
+      // Clear the state so it doesn't persist on refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   const docType = documentType || title.replace(' Generator', '').replace(' Builder', '');
   const creditCost = getDocumentCreditCost(docType);
